@@ -10,3 +10,4 @@ class Meter:
     interval: str
     current_month_consumption: float | None = None
     current_year_consumption: float | None = None
+    today_consumption: float | None = None

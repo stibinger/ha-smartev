@@ -37,6 +37,9 @@
       "current_year_consumption": {
         "name": "Current year consumption"
       },
+      "today_consumption": {
+        "name": "Today's consumption"
+      },
       "last_reading": {
         "name": "Last reading"
       }

@@ -37,6 +37,9 @@
       "current_year_consumption": {
         "name": "Spot\u0159eba za aktu\u00e1ln\u00ed rok"
       },
+      "today_consumption": {
+        "name": "Dne\u0161n\u00ed spot\u0159eba"
+      },
       "last_reading": {
         "name": "Čas posledního odečtu"
       }

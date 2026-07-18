@@ -27,7 +27,9 @@ def parse_meter(
     *,
     year: int | None = None,
     month: int | None = None,
+    day: int | None = None,
     current_year_data: dict | None = None,
+    current_month_data: dict | None = None,
 ) -> Meter:
     """Parse meter data, including optional server-provided period totals."""
 
@@ -44,5 +46,8 @@ def parse_meter(
         ),
         current_year_consumption=(
             _period_value(data, year) if year is not None else None
+        ),
+        today_consumption=(
+            _period_value(current_month_data, day) if day is not None else None
         ),
     )

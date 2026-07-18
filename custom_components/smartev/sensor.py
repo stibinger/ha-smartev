@@ -43,6 +43,12 @@ async def async_setup_entry(
                 "current_year_consumption",
                 "currentYearConsumption",
             ),
+            SmartEVPeriodConsumptionSensor(
+                coordinator,
+                flat_id,
+                "today_consumption",
+                "todayConsumption",
+            ),
             SmartEVLastReadingSensor(coordinator, flat_id),
         ]
     )

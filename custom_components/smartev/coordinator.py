@@ -31,14 +31,20 @@ class SmartEVCoordinator(DataUpdateCoordinator[dict]):
         """Fetch data from SmartEV."""
         try:
             now = dt_util.now()
-            data, current_year_data = await self.hass.async_add_executor_job(
-                self._get_consumption_data, now.year
+            data, current_year_data, current_month_data = (
+                await self.hass.async_add_executor_job(
+                    self._get_consumption_data, now.year, now.month
+                )
             )
 
             data["currentYearConsumption"] = self._period_value(data, now.year)
             data["currentMonthConsumption"] = self._period_value(
                 current_year_data, now.month
             )
+            data["todayConsumption"] = self._period_value(
+                current_month_data, now.day
+            )
+            data["dailyAggregation"] = current_month_data
             return data
         except SmartEVAuthenticationError as err:
             raise ConfigEntryAuthFailed("SmartEV authentication failed") from err
@@ -51,9 +57,15 @@ class SmartEVCoordinator(DataUpdateCoordinator[dict]):
         except (requests.RequestException, ValueError) as err:
             raise UpdateFailed(f"Error communicating with SmartEV: {err}") from err
 
-    def _get_consumption_data(self, year: int) -> tuple[dict, dict]:
-        """Fetch yearly and monthly server aggregations without blocking HA."""
-        return self.client.get_flat_info(), self.client.get_flat_info(year=year)
+    def _get_consumption_data(
+        self, year: int, month: int
+    ) -> tuple[dict, dict, dict]:
+        """Fetch all shared server aggregations without blocking HA."""
+        return (
+            self.client.get_flat_info(),
+            self.client.get_flat_info(year=year),
+            self.client.get_flat_info(year=year, month=month),
+        )
 
     @staticmethod
     def _period_value(data: dict, index: int) -> int | float | None:
