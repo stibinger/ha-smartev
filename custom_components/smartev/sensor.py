@@ -31,6 +31,18 @@ async def async_setup_entry(
     async_add_entities(
         [
             SmartEVMeterSensor(coordinator, flat_id),
+            SmartEVPeriodConsumptionSensor(
+                coordinator,
+                flat_id,
+                "current_month_consumption",
+                "currentMonthConsumption",
+            ),
+            SmartEVPeriodConsumptionSensor(
+                coordinator,
+                flat_id,
+                "current_year_consumption",
+                "currentYearConsumption",
+            ),
             SmartEVLastReadingSensor(coordinator, flat_id),
         ]
     )
@@ -102,6 +114,40 @@ class SmartEVMeterSensor(SmartEVBaseSensor):
             return None
 
         return meter.get("value1")
+
+
+class SmartEVPeriodConsumptionSensor(SmartEVBaseSensor):
+    """SmartEV server-provided period consumption."""
+
+    _attr_native_unit_of_measurement = UnitOfEnergy.KILO_WATT_HOUR
+    _attr_device_class = SensorDeviceClass.ENERGY
+    _attr_state_class = SensorStateClass.TOTAL
+    _attr_icon = "mdi:lightning-bolt"
+
+    def __init__(
+        self,
+        coordinator: SmartEVCoordinator,
+        flat_id: int,
+        translation_key: str,
+        data_key: str,
+    ) -> None:
+        super().__init__(coordinator, flat_id)
+        self._attr_translation_key = translation_key
+        self._data_key = data_key
+        self._attr_unique_id = f"meter_{self._meter_id}_{translation_key}"
+
+    @property
+    def available(self) -> bool:
+        """Return whether the API provided this period's consumption."""
+        return super().available and self.native_value is not None
+
+    @property
+    def native_value(self) -> int | float | None:
+        """Return the server-provided consumption value."""
+        if not self.coordinator.data:
+            return None
+
+        return self.coordinator.data.get(self._data_key)
 
 
 class SmartEVLastReadingSensor(SmartEVBaseSensor):

@@ -31,6 +31,12 @@
       "total_energy": {
         "name": "Total energy"
       },
+      "current_month_consumption": {
+        "name": "Current month consumption"
+      },
+      "current_year_consumption": {
+        "name": "Current year consumption"
+      },
       "last_reading": {
         "name": "Last reading"
       }

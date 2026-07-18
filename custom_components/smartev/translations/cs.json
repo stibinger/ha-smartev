@@ -31,6 +31,12 @@
       "total_energy": {
         "name": "Celková energie"
       },
+      "current_month_consumption": {
+        "name": "Spot\u0159eba za aktu\u00e1ln\u00ed m\u011bs\u00edc"
+      },
+      "current_year_consumption": {
+        "name": "Spot\u0159eba za aktu\u00e1ln\u00ed rok"
+      },
       "last_reading": {
         "name": "Čas posledního odečtu"
       }

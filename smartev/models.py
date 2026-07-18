@@ -8,3 +8,5 @@ class Meter:
     unit: str
     last_update: str
     interval: str
+    current_month_consumption: float | None = None
+    current_year_consumption: float | None = None
