@@ -1,0 +1,40 @@
+# Continuous Integration workflow
+
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install dependencies
+        run: |
+          if [ -f requirements.txt ]; then
+            python -m pip install -r requirements.txt
+          fi
+
+      - name: Compile Python files
+        run: python -m compileall smartev custom_components
+
+      - name: Validate Home Assistant translations
+        run: |
+          for file in custom_components/*/translations/*.json; do
+            python -m json.tool "$file" > /dev/null
+          done
+
+      - name: Check whitespace errors
+        run: git diff --check
