@@ -1,0 +1,9 @@
+{
+    "domain": "smartev",
+    "name": "SmartEV",
+    "version": "0.4.0",
+    "config_flow": true,
+    "requirements": [],
+    "codeowners": [],
+    "iot_class": "cloud_polling"
+}

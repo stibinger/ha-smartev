@@ -1,0 +1,39 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "data": {
+          "email": "E-mailová adresa",
+          "password": "Heslo",
+          "flat_id": "ID bytu"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Opětovné ověření SmartEV",
+        "description": "Zadejte nové heslo pro účet {email}.",
+        "data": {
+          "password": "Heslo"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Nepodařilo se připojit ke SmartEV. Zkuste to znovu později.",
+      "invalid_auth": "Neplatná e-mailová adresa, heslo nebo ID bytu.",
+      "unknown": "Při připojování ke SmartEV došlo k neočekávané chybě."
+    },
+    "abort": {
+      "already_configured": "Tento byt SmartEV je již nakonfigurován.",
+      "reauth_successful": "Opětovné ověření bylo úspěšné."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "total_energy": {
+        "name": "Celková energie"
+      },
+      "last_reading": {
+        "name": "Čas posledního odečtu"
+      }
+    }
+  }
+}

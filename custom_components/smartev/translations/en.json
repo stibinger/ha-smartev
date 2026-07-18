@@ -1,0 +1,39 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "data": {
+          "email": "Email address",
+          "password": "Password",
+          "flat_id": "Flat ID"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Reauthenticate SmartEV",
+        "description": "Enter the new password for {email}.",
+        "data": {
+          "password": "Password"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Unable to connect to SmartEV. Try again later.",
+      "invalid_auth": "Invalid email address, password, or Flat ID.",
+      "unknown": "Unexpected error while connecting to SmartEV."
+    },
+    "abort": {
+      "already_configured": "This SmartEV flat is already configured.",
+      "reauth_successful": "Reauthentication was successful."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "total_energy": {
+        "name": "Total energy"
+      },
+      "last_reading": {
+        "name": "Last reading"
+      }
+    }
+  }
+}
