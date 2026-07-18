@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Petr Štibinger
+# SPDX-License-Identifier: MIT
+
 """SmartEV Home Assistant integration."""
 
 from __future__ import annotations

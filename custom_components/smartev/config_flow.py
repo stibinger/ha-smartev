@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Petr Štibinger
+# SPDX-License-Identifier: MIT
+
 """Config flow for the SmartEV integration."""
 
 from __future__ import annotations

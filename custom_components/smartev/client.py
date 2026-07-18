@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Petr Štibinger
+# SPDX-License-Identifier: MIT
+
 """SmartEV API client."""
 
 from datetime import UTC, datetime

@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Petr Štibinger
+# SPDX-License-Identifier: MIT
+
 DOMAIN = "smartev"
 
 CONF_EMAIL = "email"
