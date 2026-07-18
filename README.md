@@ -1,3 +1,4 @@
+
 <p align="center">
   <img src="docs/logo.png" alt="SmartEV Logo" width="220">
 </p>
@@ -11,7 +12,7 @@ Custom Home Assistant integration for SmartEV utility meters.
 </p>
 
 <p align="center">
-Currently under active development.
+Actively developed Home Assistant integration.
 </p>
 
 ---
@@ -22,9 +23,9 @@ Currently under active development.
 
 SmartEV Home Assistant Integration allows Home Assistant to communicate with the SmartEV platform and retrieve utility meter data.
 
-The integration currently supports electricity meters and has been designed with future support for additional utility meters, such as water meters.
+SmartEV is a metering platform used for monitoring utility consumption in residential and commercial buildings.
 
----
+The integration currently supports electricity meters and has been designed with future support for additional utility meters, such as water meters.
 
 ## Features
 
@@ -37,13 +38,18 @@ The integration currently supports electricity meters and has been designed with
 - Total Energy sensor
 - Last Reading Timestamp sensor
 
----
+## Supported meters
+
+| Meter | Status |
+|--------|--------|
+| ⚡ Electricity | ✅ Supported |
+| 🚰 Water | 🚧 Planned |
 
 ## Installation
 
-Copy the integration into your Home Assistant configuration directory.
+Copy the `custom_components/smartev` directory into your Home Assistant configuration:
 
-```
+```text
 config/
 └── custom_components/
     └── smartev/
@@ -51,22 +57,17 @@ config/
 
 Restart Home Assistant.
 
----
-
 ## Configuration
 
 1. Open **Settings → Devices & Services**
 2. Click **Add Integration**
 3. Search for **SmartEV**
 4. Enter:
+   - Email
+   - Password
+   - Flat ID
 
-- Email
-- Password
-- Flat ID
-
-The integration will automatically create the available entities.
-
----
+The integration automatically creates all available entities.
 
 ## Current entities
 
@@ -74,8 +75,6 @@ The integration will automatically create the available entities.
 |---------|-------------|
 | Total Energy | Total electricity consumption (kWh) |
 | Last Reading Timestamp | Date and time of the latest meter reading |
-
----
 
 ## Planned features
 
@@ -86,29 +85,15 @@ The integration will automatically create the available entities.
 - Diagnostic entities
 - HACS support
 
----
-
 ## Local development
 
-For local testing create:
+Create `test_config.py` from `test_config.example.py`.
 
-```
-test_config.py
-```
-
-using the template:
-
-```
-test_config.example.py
-```
-
-This file contains personal credentials and is intentionally excluded from Git using `.gitignore`.
-
----
+The file contains personal credentials and is intentionally excluded from Git using `.gitignore`.
 
 ## Project structure
 
-```
+```text
 custom_components/
     smartev/
 
@@ -121,15 +106,11 @@ docs/
     logo.png
 ```
 
----
-
 ## Requirements
 
 The Home Assistant integration uses dependencies defined in `manifest.json`.
 
-The included Python helper library and test utilities may additionally use `requirements.txt` during local development.
-
----
+The included Python helper library and local test utilities may additionally use `requirements.txt`.
 
 ## License
 
@@ -143,9 +124,9 @@ The license will be specified before the first public release.
 
 SmartEV Home Assistant Integration umožňuje propojit Home Assistant se službou SmartEV a zobrazovat údaje z podporovaných měřidel.
 
-V současné době podporuje elektroměry a je navržena tak, aby bylo možné v budoucnu přidat také další měřidla, například vodoměry.
+SmartEV je platforma pro sledování spotřeby energií a dalších médií v bytových i komerčních objektech.
 
----
+Integrace nyní podporuje elektroměry a je připravena na budoucí rozšíření o další měřidla, například vodoměry.
 
 ## Funkce
 
@@ -158,40 +139,26 @@ V současné době podporuje elektroměry a je navržena tak, aby bylo možné v
 - Entita Celková energie
 - Entita Čas posledního odečtu
 
----
+## Podporovaná měřidla
+
+| Měřidlo | Stav |
+|----------|------|
+| ⚡ Elektroměr | ✅ Podporováno |
+| 🚰 Vodoměr | 🚧 Připravuje se |
 
 ## Instalace
 
-Zkopírujte adresář
-
-```
-custom_components/smartev
-```
-
-do složky
-
-```
-config/custom_components/
-```
-
-a restartujte Home Assistant.
-
----
+Zkopírujte adresář `custom_components/smartev` do `config/custom_components/` a restartujte Home Assistant.
 
 ## Konfigurace
 
 1. Otevřete **Nastavení → Zařízení a služby**
 2. Klikněte na **Přidat integraci**
 3. Vyhledejte **SmartEV**
-4. Zadejte
-
-- e-mail
-- heslo
-- ID bytu
-
-Integrace automaticky vytvoří dostupné entity.
-
----
+4. Zadejte:
+   - e-mail
+   - heslo
+   - ID bytu
 
 ## Aktuálně podporované entity
 
@@ -199,8 +166,6 @@ Integrace automaticky vytvoří dostupné entity.
 |---------|-------|
 | Celková energie | Celková spotřeba elektřiny (kWh) |
 | Čas posledního odečtu | Datum a čas posledního odečtu elektroměru |
-
----
 
 ## Plánované funkce
 
@@ -211,29 +176,15 @@ Integrace automaticky vytvoří dostupné entity.
 - Diagnostické entity
 - Podpora HACS
 
----
-
 ## Lokální vývoj
 
-Pro lokální testování vytvořte soubor
-
-```
-test_config.py
-```
-
-podle šablony
-
-```
-test_config.example.py
-```
+Vytvořte `test_config.py` podle `test_config.example.py`.
 
 Soubor obsahuje přihlašovací údaje a je záměrně vyloučen z Gitu pomocí `.gitignore`.
 
----
-
 ## Struktura projektu
 
-```
+```text
 custom_components/
     smartev/
 
@@ -246,15 +197,11 @@ docs/
     logo.png
 ```
 
----
-
 ## Závislosti
 
-Samotná Home Assistant integrace používá závislosti definované v souboru `manifest.json`.
+Home Assistant používá závislosti definované v `manifest.json`.
 
 Pomocná Python knihovna a testovací skripty mohou při lokálním vývoji využívat také `requirements.txt`.
-
----
 
 ## Licence
 
