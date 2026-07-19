@@ -2,8 +2,13 @@
     "domain": "smartev",
     "name": "SmartEV",
     "version": "0.4.0",
+    "documentation": "https://github.com/stibinger/ha-smartev",
+    "issue_tracker": "https://github.com/stibinger/ha-smartev/issues",
+    "integration_type": "service",
     "config_flow": true,
     "requirements": [],
-    "codeowners": [],
+    "codeowners": [
+        "@stibinger"
+    ],
     "iot_class": "cloud_polling"
 }
