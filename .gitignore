@@ -14,11 +14,19 @@ ENV/
 # VS Code
 .vscode/
 
-# Development files
+# Development sources
 smartev/
 tools/
-test_*.py
+captures/
+
+# Local configuration
+test_config.py
 *_config.py
+
+# Test files
+test_*.py
+
+# Development dependencies
 requirements.txt
 
 # Logs
