@@ -2,10 +2,18 @@
   "config": {
     "step": {
       "user": {
+        "title": "Connect to SmartEV",
+        "description": "Enter your SmartEV credentials. Available apartments will be discovered automatically.",
         "data": {
           "email": "Email address",
-          "password": "Password",
-          "flat_id": "Flat ID"
+          "password": "Password"
+        }
+      },
+      "apartment": {
+        "title": "Select apartment",
+        "description": "Select the apartment that this integration instance should monitor.",
+        "data": {
+          "apartment": "Apartment"
         }
       },
       "reauth_confirm": {
@@ -18,31 +26,24 @@
     },
     "error": {
       "cannot_connect": "Unable to connect to SmartEV. Try again later.",
-      "invalid_auth": "Invalid email address, password, or Flat ID.",
+      "invalid_auth": "Invalid email address or password.",
+      "unsupported_apartment": "The selected apartment has no supported electricity meter.",
       "unknown": "Unexpected error while connecting to SmartEV."
     },
     "abort": {
-      "already_configured": "This SmartEV flat is already configured.",
-      "reauth_successful": "Reauthentication was successful."
+      "already_configured": "This SmartEV apartment is already configured.",
+      "reauth_successful": "Reauthentication was successful.",
+      "no_apartments": "No apartments were found for this SmartEV account.",
+      "discovery_expired": "Apartment discovery expired. Start configuration again."
     }
   },
   "entity": {
     "sensor": {
-      "total_energy": {
-        "name": "Total energy"
-      },
-      "current_month_consumption": {
-        "name": "Current month consumption"
-      },
-      "current_year_consumption": {
-        "name": "Current year consumption"
-      },
-      "today_consumption": {
-        "name": "Today's consumption"
-      },
-      "last_reading": {
-        "name": "Last reading"
-      }
+      "total_energy": {"name": "Total energy"},
+      "current_month_consumption": {"name": "Current month consumption"},
+      "current_year_consumption": {"name": "Current year consumption"},
+      "today_consumption": {"name": "Today's consumption"},
+      "last_reading": {"name": "Last reading"}
     }
   }
 }

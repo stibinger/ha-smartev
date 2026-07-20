@@ -1,0 +1,482 @@
+--- captures\admin\buildingFlatsMeters-building-10.json
++++ captures\user\buildingFlatsMeters-building-10.json
+@@ -1,157 +1,13 @@
+ {
+   "buildingId": 10,
+   "flats": [
+-    {
+-      "fname": "Petr",
+-      "id": 208,
+-      "lname": "Oršulík",
+-      "meters": [
+-        {
+-          "dt": 1784545822,
+-          "id": 19,
+-          "type": 0,
+-          "unit": "kWh",
+-          "value1": 3668.02294921875,
+-          "value2": "NaN"
+-        }
+-      ],
+-      "name": "Petr  Oršulík",
+-      "number": 21,
+-      "storey": 5
+-    },
+-    {
+-      "fname": "Alena",
+-      "id": 209,
+-      "lname": "Janovská",
+-      "meters": [
+-        {
+-          "dt": 1784545822,
+-          "id": 20,
+-          "type": 0,
+-          "unit": "kWh",
+-          "value1": 6473.450785156339,
+-          "value2": "NaN"
+-        }
+-      ],
+-      "name": "Alena  Janovská",
+-      "number": 22,
+-      "storey": 5
+-    },
+-    {
+-      "fname": "Bronislav",
+-      "id": 210,
+-      "lname": "Žmij",
+-      "meters": [
+-        {
+-          "dt": 1784545822,
+-          "id": 21,
+-          "type": 0,
+-          "unit": "kWh",
+-          "value1": 1327.10498046875,
+-          "value2": "NaN"
+-        }
+-      ],
+-      "name": "Bronislav Žmij",
+-      "number": 23,
+-      "storey": 5
+-    },
+-    {
+-      "fname": "Kristina",
+-      "id": 211,
+-      "lname": "Reková",
+-      "meters": [
+-        {
+-          "dt": 1784545822,
+-          "id": 22,
+-          "type": 0,
+-          "unit": "kWh",
+-          "value1": 6241.0400390625,
+-          "value2": "NaN"
+-        }
+-      ],
+-      "name": "Kristina Reková",
+-      "number": 24,
+-      "storey": 5
+-    },
+-    {
+-      "fname": "Luděk ",
+-      "id": 204,
+-      "lname": "Sokol",
+-      "meters": [
+-        {
+-          "dt": null,
+-          "id": null,
+-          "type": null,
+-          "unit": null,
+-          "value1": "NaN",
+-          "value2": "NaN"
+-        }
+-      ],
+-      "name": "* Luděk  Sokol",
+-      "number": 17,
+-      "storey": 4
+-    },
+-    {
+-      "fname": "Jiří",
+-      "id": 205,
+-      "lname": "Strouhal",
+-      "meters": [
+-        {
+-          "dt": null,
+-          "id": null,
+-          "type": null,
+-          "unit": null,
+-          "value1": "NaN",
+-          "value2": "NaN"
+-        }
+-      ],
+-      "name": "* Jiří  Strouhal",
+-      "number": 18,
+-      "storey": 4
+-    },
+-    {
+-      "fname": "Christian",
+-      "id": 206,
+-      "lname": "Benko",
+-      "meters": [
+-        {
+-          "dt": 1784545822,
+-          "id": 17,
+-          "type": 0,
+-          "unit": "kWh",
+-          "value1": 1232.2679755687714,
+-          "value2": "NaN"
+-        }
+-      ],
+-      "name": "Christian Benko",
+-      "number": 19,
+-      "storey": 4
+-    },
+-    {
+-      "fname": "František",
+-      "id": 207,
+-      "lname": "Trenz",
+-      "meters": [
+-        {
+-          "dt": 1784545822,
+-          "id": 18,
+-          "type": 0,
+-          "unit": "kWh",
+-          "value1": 2863.1150136719225,
+-          "value2": "NaN"
+-        }
+-      ],
+-      "name": "František Trenz",
+-      "number": 20,
+-      "storey": 4
+-    },
+     {
+       "fname": "Jakub",
+       "id": 200,
+       "lname": "Rada",
+       "meters": [
+         {
+-          "dt": 1784545821,
++          "dt": 1784545869,
+           "id": 13,
+           "type": 0,
+           "unit": "kWh",
+@@ -162,320 +18,6 @@
+       "name": "Jakub Rada",
+       "number": 13,
+       "storey": 3
+-    },
+-    {
+-      "fname": "Miroslava",
+-      "id": 201,
+-      "lname": "Šturalová",
+-      "meters": [
+-        {
+-          "dt": 1784545821,
+-          "id": 14,
+-          "type": 0,
+-          "unit": "kWh",
+-          "value1": 1979.015038087964,
+-          "value2": "NaN"
+-        }
+-      ],
+-      "name": "Miroslava  Šturalová",
+-      "number": 14,
+-      "storey": 3
+-    },
+-    {
+-      "fname": "Kateřina",
+-      "id": 202,
+-      "lname": "Kompérová",
+-      "meters": [
+-        {
+-          "dt": 1784545821,
+-          "id": 15,
+-          "type": 0,
+-          "unit": "kWh",
+-          "value1": 2338.489990234375,
+-          "value2": "NaN"
+-        }
+-      ],
+-      "name": "Kateřina Kompérová",
+-      "number": 15,
+-      "storey": 3
+-    },
+-    {
+-      "fname": "Petr",
+-      "id": 203,
+-      "lname": "Březina",
+-      "meters": [
+-        {
+-          "dt": 1784545822,
+-          "id": 16,
+-          "type": 0,
+-          "unit": "kWh",
+-          "value1": 4243.169921875,
+-          "value2": "NaN"
+-        }
+-      ],
+-      "name": "Petr  Březina",
+-      "number": 16,
+-      "storey": 3
+-    },
+-    {
+-      "fname": "Pavel",
+-      "id": 196,
+-      "lname": "Srba",
+-      "meters": [
+-        {
+-          "dt": 1784545823,
+-          "id": 9,
+-          "type": 0,
+-          "unit": "kWh",
+-          "value1": 5950.33984375,
+-          "value2": "NaN"
+-        }
+-      ],
+-      "name": "Pavel Srba",
+-      "number": 9,
+-      "storey": 2
+-    },
+-    {
+-      "fname": "Jiří",
+-      "id": 197,
+-      "lname": "Návrat",
+-      "meters": [
+-        {
+-          "dt": 1784545823,
+-          "id": 10,
+-          "type": 0,
+-          "unit": "kWh",
+-          "value1": 1947.4429931640625,
+-          "value2": "NaN"
+-        }
+-      ],
+-      "name": "Jiří  Návrat",
+-      "number": 10,
+-      "storey": 2
+-    },
+-    {
+-      "fname": "",
+-      "id": 198,
+-      "lname": "MONETAR a.s.",
+-      "meters": [
+-        {
+-          "dt": 1784545823,
+-          "id": 11,
+-          "type": 0,
+-          "unit": "kWh",
+-          "value1": 4568.081238269806,
+-          "value2": "NaN"
+-        }
+-      ],
+-      "name": "MONETAR a.s.",
+-      "number": 11,
+-      "storey": 2
+-    },
+-    {
+-      "fname": "Petr",
+-      "id": 199,
+-      "lname": "Štibinger",
+-      "meters": [
+-        {
+-          "dt": 1784545823,
+-          "id": 12,
+-          "type": 0,
+-          "unit": "kWh",
+-          "value1": 8365.8212890625,
+-          "value2": "NaN"
+-        }
+-      ],
+-      "name": "Petr  Štibinger",
+-      "number": 12,
+-      "storey": 2
+-    },
+-    {
+-      "fname": "František",
+-      "id": 192,
+-      "lname": "Trenz",
+-      "meters": [
+-        {
+-          "dt": 1784545833,
+-          "id": 5,
+-          "type": 0,
+-          "unit": "kWh",
+-          "value1": 4528.35107421875,
+-          "value2": "NaN"
+-        }
+-      ],
+-      "name": "František Trenz",
+-      "number": 5,
+-      "storey": 1
+-    },
+-    {
+-      "fname": "Michal",
+-      "id": 193,
+-      "lname": "Hanzelka",
+-      "meters": [
+-        {
+-          "dt": 1784545833,
+-          "id": 6,
+-          "type": 0,
+-          "unit": "kWh",
+-          "value1": 5314.63818359375,
+-          "value2": "NaN"
+-        }
+-      ],
+-      "name": "Michal  Hanzelka",
+-      "number": 6,
+-      "storey": 1
+-    },
+-    {
+-      "fname": "Martin",
+-      "id": 194,
+-      "lname": "Prokeš",
+-      "meters": [
+-        {
+-          "dt": 1784545833,
+-          "id": 7,
+-          "type": 0,
+-          "unit": "kWh",
+-          "value1": 1814.8489990234375,
+-          "value2": "NaN"
+-        }
+-      ],
+-      "name": "Martin  Prokeš",
+-      "number": 7,
+-      "storey": 1
+-    },
+-    {
+-      "fname": "Roman",
+-      "id": 195,
+-      "lname": "Stopka",
+-      "meters": [
+-        {
+-          "dt": 1784545833,
+-          "id": 8,
+-          "type": 0,
+-          "unit": "kWh",
+-          "value1": 5318.486156463623,
+-          "value2": "NaN"
+-        }
+-      ],
+-      "name": "Roman Stopka",
+-      "number": 8,
+-      "storey": 1
+-    },
+-    {
+-      "fname": "Radek",
+-      "id": 188,
+-      "lname": "Sommer",
+-      "meters": [
+-        {
+-          "dt": 1784545823,
+-          "id": 2,
+-          "type": 0,
+-          "unit": "kWh",
+-          "value1": 5270.591796875,
+-          "value2": "NaN"
+-        }
+-      ],
+-      "name": "Radek Sommer",
+-      "number": 1,
+-      "storey": 0
+-    },
+-    {
+-      "fname": "Roman",
+-      "id": 189,
+-      "lname": "Opluštil",
+-      "meters": [
+-        {
+-          "dt": null,
+-          "id": null,
+-          "type": null,
+-          "unit": null,
+-          "value1": "NaN",
+-          "value2": "NaN"
+-        }
+-      ],
+-      "name": "* Roman Opluštil",
+-      "number": 2,
+-      "storey": 0
+-    },
+-    {
+-      "fname": "Ludmila",
+-      "id": 190,
+-      "lname": "Šimková",
+-      "meters": [
+-        {
+-          "dt": 1784545823,
+-          "id": 3,
+-          "type": 0,
+-          "unit": "kWh",
+-          "value1": 1176.527995109558,
+-          "value2": "NaN"
+-        }
+-      ],
+-      "name": "Ludmila Šimková",
+-      "number": 3,
+-      "storey": 0
+-    },
+-    {
+-      "fname": "Miroslav",
+-      "id": 191,
+-      "lname": "Krčmář",
+-      "meters": [
+-        {
+-          "dt": 1784545823,
+-          "id": 4,
+-          "type": 0,
+-          "unit": "kWh",
+-          "value1": 6399.494140625,
+-          "value2": "NaN"
+-        }
+-      ],
+-      "name": "Miroslav  Krčmář",
+-      "number": 4,
+-      "storey": 0
+-    },
+-    {
+-      "fname": null,
+-      "id": 185,
+-      "lname": null,
+-      "meters": [
+-        {
+-          "dt": 1784545823,
+-          "id": 1,
+-          "type": 0,
+-          "unit": "kWh",
+-          "value1": 49388.6484375,
+-          "value2": 13981.30859375
+-        },
+-        {
+-          "dt": 1784545822,
+-          "id": 23,
+-          "type": 1,
+-          "unit": "kWh",
+-          "value1": 61915.83203125,
+-          "value2": 138.17799377441406
+-        }
+-      ],
+-      "name": "-JOM-",
+-      "number": null,
+-      "storey": -1
+-    },
+-    {
+-      "fname": null,
+-      "id": 186,
+-      "lname": null,
+-      "meters": [
+-        {
+-          "dt": 1784545822,
+-          "id": 24,
+-          "type": 0,
+-          "unit": "kWh",
+-          "value1": 7149.7919921875,
+-          "value2": 0
+-        }
+-      ],
+-      "name": "Spol. prostory",
+-      "number": null,
+-      "storey": -1
+     }
+   ]
+ }

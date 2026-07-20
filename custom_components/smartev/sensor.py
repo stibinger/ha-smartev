@@ -37,14 +37,14 @@ async def async_setup_entry(
             SmartEVPeriodConsumptionSensor(
                 coordinator,
                 flat_id,
-                "current_month_consumption",
-                "currentMonthConsumption",
+                "current_year_consumption",
+                "currentYearConsumption",
             ),
             SmartEVPeriodConsumptionSensor(
                 coordinator,
                 flat_id,
-                "current_year_consumption",
-                "currentYearConsumption",
+                "current_month_consumption",
+                "currentMonthConsumption",
             ),
             SmartEVPeriodConsumptionSensor(
                 coordinator,

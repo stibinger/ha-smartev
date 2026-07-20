@@ -114,7 +114,7 @@ class SmartEVClient:
     BASE_URL = "https://jom.smartev.cz"
     REQUEST_TIMEOUT = 30.0
 
-    def __init__(self, email: str, password: str, flat_id: int) -> None:
+    def __init__(self, email: str, password: str, flat_id: int | None = None) -> None:
         self._email = email
         self._password = password
         self._flat_id = flat_id
@@ -149,6 +149,70 @@ class SmartEVClient:
         """Close the HTTP session."""
         self.session.close()
 
+    def _get_json(self, endpoint: str, **params) -> object:
+        """Return an authenticated JSON response from a SmartEV endpoint."""
+        response = self.session.get(
+            self.BASE_URL + endpoint,
+            params=params,
+            timeout=self.REQUEST_TIMEOUT,
+        )
+        response.raise_for_status()
+        if _is_authentication_response(response):
+            raise SmartEVAuthenticationError("SmartEV authentication has expired.")
+        try:
+            return response.json()
+        except requests.JSONDecodeError as err:
+            raise SmartEVResponseError(
+                "SmartEV returned an invalid JSON response."
+            ) from err
+
+    def discover_apartments(self) -> list[dict]:
+        """Return apartments exposed to the authenticated SmartEV account."""
+        topology = self._get_json("/data/userOperatorsBuildings.php")
+        if not isinstance(topology, list):
+            raise SmartEVResponseError("SmartEV topology must be a JSON array.")
+
+        buildings: dict[int, str] = {}
+        for operator in topology:
+            if not isinstance(operator, dict):
+                continue
+            for jom in operator.get("joms", []):
+                if not isinstance(jom, dict):
+                    continue
+                for building in jom.get("buildings", []):
+                    if not isinstance(building, dict):
+                        continue
+                    building_id = building.get("id")
+                    if isinstance(building_id, int) and not isinstance(building_id, bool):
+                        buildings[building_id] = str(building.get("name") or building_id)
+
+        apartments: dict[int, dict] = {}
+        for building_id, building_name in buildings.items():
+            data = self._get_json(
+                "/data/buildingFlatsMeters.php", buildingId=building_id
+            )
+            if not isinstance(data, dict) or not isinstance(data.get("flats"), list):
+                raise SmartEVResponseError(
+                    "SmartEV building apartments response has an invalid structure."
+                )
+            for flat in data["flats"]:
+                if not isinstance(flat, dict) or flat.get("number") is None:
+                    continue
+                flat_id = flat.get("id")
+                if not isinstance(flat_id, int) or isinstance(flat_id, bool):
+                    continue
+                apartments[flat_id] = {
+                    "flat_id": flat_id,
+                    "name": str(flat.get("name") or flat_id).strip(),
+                    "number": flat["number"],
+                    "building_id": building_id,
+                    "building_name": building_name.strip(),
+                }
+        return sorted(
+            apartments.values(),
+            key=lambda item: (item["building_name"].casefold(), item["number"]),
+        )
+
     def get_flat_info(
         self,
         year: int = 0,
@@ -157,27 +221,13 @@ class SmartEVClient:
     ) -> dict:
         """Return SmartEV data for the requested period."""
 
-        response = self.session.get(
-            self.BASE_URL + "/data/flatMetersChart.php",
-            params={
-                "flatId": self._flat_id,
-                "y": year,
-                "m": month,
-                "d": day,
-            },
-            timeout=self.REQUEST_TIMEOUT,
+        if self._flat_id is None:
+            raise ValueError("flat_id is required for get_flat_info().")
+        data = self._get_json(
+            "/data/flatMetersChart.php",
+            flatId=self._flat_id,
+            y=year,
+            m=month,
+            d=day,
         )
-
-        response.raise_for_status()
-
-        if _is_authentication_response(response):
-            raise SmartEVAuthenticationError("SmartEV authentication has expired.")
-
-        try:
-            data = response.json()
-        except requests.JSONDecodeError as err:
-            raise SmartEVResponseError(
-                "SmartEV returned an invalid JSON response."
-            ) from err
-
         return _validate_flat_info(data)

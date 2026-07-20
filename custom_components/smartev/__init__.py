@@ -31,6 +31,15 @@ _LOGGER = logging.getLogger(__name__)
 PLATFORMS: list[Platform] = [Platform.SENSOR]
 
 
+async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Migrate existing flat-based entries to the discovery flow version."""
+    if entry.version < 2:
+        if CONF_FLAT_ID not in entry.data:
+            return False
+        hass.config_entries.async_update_entry(entry, version=2)
+    return True
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up SmartEV from a config entry."""
     client = SmartEVClient(

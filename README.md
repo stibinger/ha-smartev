@@ -66,7 +66,11 @@ cache.
 4.  Enter:
     -   Email
     -   Password
-    -   Flat ID
+
+SmartEV automatically discovers the apartments available to the account. If
+one apartment is found, it is selected automatically. If several are found,
+Home Assistant asks which apartment to add. Flat IDs no longer need to be
+entered manually. Existing configured entries are migrated automatically.
 
 The integration automatically creates all available entities.
 
@@ -166,7 +170,11 @@ Pokud se integrace ihned nezobrazí, obnovte cache prohlížeče.
 4.  Zadejte:
     -   e-mail
     -   heslo
-    -   ID bytu
+
+SmartEV automaticky vyhledá byty dostupné pro daný účet. Pokud nalezne právě
+jeden byt, vybere jej automaticky. Pokud jich nalezne více, Home Assistant
+nabídne výběr bytu. ID bytu již není nutné zadávat ručně. Existující
+konfigurace se migrují automaticky.
 
 Integrace automaticky vytvoří všechny dostupné entity.
 

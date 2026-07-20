@@ -1,0 +1,79 @@
+{
+  "account": "user",
+  "summary": {
+    "ok": 10,
+    "failed": 0
+  },
+  "responses": [
+    {
+      "name": "userOperatorsBuildings",
+      "status": 200,
+      "bytes": 141,
+      "file": "userOperatorsBuildings.json",
+      "url": "https://jom.smartev.cz/data/userOperatorsBuildings.php"
+    },
+    {
+      "name": "buildingFlatsMeters-building-10",
+      "status": 200,
+      "bytes": 211,
+      "file": "buildingFlatsMeters-building-10.json",
+      "url": "https://jom.smartev.cz/data/buildingFlatsMeters.php?buildingId=10"
+    },
+    {
+      "name": "flatMetersState-building-10",
+      "status": 200,
+      "bytes": 2055,
+      "file": "flatMetersState-building-10.json",
+      "url": "https://jom.smartev.cz/data/flatMetersState.php?buildingId=10"
+    },
+    {
+      "name": "jomMeters-jom-2304501",
+      "status": 200,
+      "bytes": 503,
+      "file": "jomMeters-jom-2304501.json",
+      "url": "https://jom.smartev.cz/data/jomMeters.php?jomId=2304501"
+    },
+    {
+      "name": "jomEnergyChart-jom-2304501",
+      "status": 200,
+      "bytes": 194,
+      "file": "jomEnergyChart-jom-2304501.json",
+      "url": "https://jom.smartev.cz/data/jomEnergyChart.php?jomId=2304501"
+    },
+    {
+      "name": "smartSockets-jom-2304501",
+      "status": 200,
+      "bytes": 5,
+      "file": "smartSockets-jom-2304501.json",
+      "url": "https://jom.smartev.cz/data/smartSockets.php?action=getJomSocketsState&jomId=2304501"
+    },
+    {
+      "name": "jomChargers-jom-2304501",
+      "status": 200,
+      "bytes": 29,
+      "file": "jomChargers-jom-2304501.json",
+      "url": "https://jom.smartev.cz/data/jomChargers.php?action=getChargers&jomId=2304501"
+    },
+    {
+      "name": "flatMetersState-flat-200",
+      "status": 200,
+      "bytes": 750,
+      "file": "flatMetersState-flat-200.json",
+      "url": "https://jom.smartev.cz/data/flatMetersState.php?flatId=200"
+    },
+    {
+      "name": "flatMetersChart-flat-200",
+      "status": 200,
+      "bytes": 541,
+      "file": "flatMetersChart-flat-200.json",
+      "url": "https://jom.smartev.cz/data/flatMetersChart.php?flatId=200&y=0&m=0&d=0"
+    },
+    {
+      "name": "waterHeatingMetersState-flat-200",
+      "status": 200,
+      "bytes": 146,
+      "file": "waterHeatingMetersState-flat-200.json",
+      "url": "https://jom.smartev.cz/data/waterHeatingMetersState.php?action=getWaterHeatingMetersStateData&flatId=200"
+    }
+  ]
+}
