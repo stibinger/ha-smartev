@@ -4,7 +4,7 @@
     "version": "0.5.0",
     "documentation": "https://github.com/stibinger/ha-smartev",
     "issue_tracker": "https://github.com/stibinger/ha-smartev/issues",
-    "integration_type": "service",
+    "integration_type": "hub",
     "config_flow": true,
     "requirements": [],
     "codeowners": [
