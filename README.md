@@ -53,8 +53,6 @@ The integration currently supports electricity meters and has been designed for 
 
 ## Installation
 
-## Installation
-
 ### Option 1 – HACS (Recommended)
 
 Before SmartEV is included in the official HACS repository, install it as a **Custom Repository**.
@@ -128,7 +126,6 @@ The list of entities will expand as new SmartEV functionality becomes available.
 - Additional utility meters
 - Instant power (if provided by SmartEV)
 - Diagnostic entities
-- HACS support
 
 ---
 
