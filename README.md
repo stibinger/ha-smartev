@@ -23,7 +23,7 @@ A custom Home Assistant integration for SmartEV utility meters.
 
 ## About
 
-SmartEV Home Assistant Integration connects Home Assistant to the SmartEV cloud platform and imports utility meter data.
+SmartEV Home Assistant Integration connects Home Assistant to the SmartEV cloud platform and retrieves utility meter data from the SmartEV cloud.
 
 The integration currently supports electricity meters and has been designed for future expansion to additional SmartEV devices, including water meters.
 
@@ -113,7 +113,13 @@ After setup, all supported entities are created automatically.
 
 ## Current entities
 
-The integration automatically creates entities for supported SmartEV meters.
+The integration currently creates sensors for:
+
+- Total energy
+- Yearly consumption
+- Monthly consumption
+- Today's consumption
+- Last meter reading (diagnostic)
 
 The list of entities will expand as new SmartEV functionality becomes available.
 
@@ -150,7 +156,7 @@ docs/
 
 ## Requirements
 
-No additional Python packages are required.
+No additional Python packages need to be installed manually.
 
 The integration uses only dependencies managed by Home Assistant through `manifest.json`.
 
@@ -198,7 +204,33 @@ Integrace aktuálně podporuje elektroměry a je připravena na budoucí rozší
 
 ## Instalace
 
-Zkopírujte adresář `custom_components/smartev` do:
+### Možnost 1 – HACS (doporučeno)
+
+Dokud není SmartEV zařazen do oficiálního repozitáře HACS, nainstalujte jej jako **vlastní repozitář (Custom Repository)**.
+
+1. Otevřete **HACS → Integrace**.
+2. Klikněte na **⋮ → Vlastní repozitáře (Custom repositories)**.
+3. Přidejte:
+
+```text
+Repozitář:
+https://github.com/stibinger/ha-smartev
+
+Kategorie:
+Integration
+```
+
+4. Klikněte na **Přidat**.
+5. Vyhledejte **SmartEV**.
+6. Klikněte na **Stáhnout**.
+7. Restartujte Home Assistant.
+8. Přidejte integraci přes **Nastavení → Zařízení a služby**.
+
+---
+
+### Možnost 2 – Ruční instalace
+
+Zkopírujte adresář `custom_components/smartev` do konfiguračního adresáře Home Assistant:
 
 ```text
 config/
@@ -207,10 +239,6 @@ config/
 ```
 
 Restartujte Home Assistant.
-
-Pokud se integrace ihned nezobrazí, obnovte cache prohlížeče.
-
----
 
 ## Konfigurace
 
