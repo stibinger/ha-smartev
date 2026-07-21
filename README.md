@@ -53,6 +53,34 @@ The integration currently supports electricity meters and has been designed for 
 
 ## Installation
 
+## Installation
+
+### Option 1 – HACS (Recommended)
+
+Before SmartEV is included in the official HACS repository, install it as a **Custom Repository**.
+
+1. Open **HACS → Integrations**.
+2. Click **⋮ → Custom repositories**.
+3. Add:
+
+```text
+Repository:
+https://github.com/stibinger/ha-smartev
+
+Category:
+Integration
+```
+
+4. Click **Add**.
+5. Search for **SmartEV**.
+6. Click **Download**.
+7. Restart Home Assistant.
+8. Add the integration via **Settings → Devices & Services**.
+
+---
+
+### Option 2 – Manual installation
+
 Copy the `custom_components/smartev` directory into your Home Assistant configuration:
 
 ```text
@@ -62,8 +90,6 @@ config/
 ```
 
 Restart Home Assistant.
-
-If the integration does not immediately appear, refresh your browser cache.
 
 ---
 
