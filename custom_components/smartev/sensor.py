@@ -64,6 +64,18 @@ async def async_setup_entry(
                 "today_production",
                 "todayProduction",
             ),
+            SmartEVPeriodGridEnergySensor(
+                coordinator,
+                flat_id,
+                "current_month_grid_energy",
+                "currentMonthGridEnergy",
+            ),
+            SmartEVPeriodGridEnergySensor(
+                coordinator,
+                flat_id,
+                "today_grid_energy",
+                "todayGridEnergy",
+            ),
             SmartEVLastReadingSensor(coordinator, flat_id),
         ]
     )
@@ -175,6 +187,12 @@ class SmartEVPeriodProductionSensor(SmartEVPeriodConsumptionSensor):
     """SmartEV server-provided period PV production."""
 
     _attr_icon = "mdi:solar-power"
+
+
+class SmartEVPeriodGridEnergySensor(SmartEVPeriodConsumptionSensor):
+    """SmartEV server-provided period grid energy."""
+
+    _attr_icon = "mdi:transmission-tower"
 
 
 class SmartEVLastReadingSensor(SmartEVBaseSensor):

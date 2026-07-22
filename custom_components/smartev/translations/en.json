@@ -45,6 +45,8 @@
       "today_consumption": {"name": "Today's consumption"},
       "current_month_production": {"name": "Current month PV production"},
       "today_production": {"name": "Today's PV production"},
+      "current_month_grid_energy": {"name": "Current month grid energy"},
+      "today_grid_energy": {"name": "Today's grid energy"},
       "last_reading": {"name": "Last reading"}
     }
   }

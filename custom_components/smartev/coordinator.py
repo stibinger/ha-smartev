@@ -52,8 +52,14 @@ class SmartEVCoordinator(DataUpdateCoordinator[dict]):
             data["todayConsumption"] = self._period_value(
                 current_month_data, now.day
             )
-            data["currentMonthProduction"] = current_month_production["total"]
-            data["todayProduction"] = current_month_production["daily"].get(
+            data["currentMonthProduction"] = current_month_production["pv"]["total"]
+            data["todayProduction"] = current_month_production["pv"]["daily"].get(
+                now.date().isoformat()
+            )
+            data["currentMonthGridEnergy"] = current_month_production["grid"][
+                "total"
+            ]
+            data["todayGridEnergy"] = current_month_production["grid"]["daily"].get(
                 now.date().isoformat()
             )
             data["dailyAggregation"] = current_month_data

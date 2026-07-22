@@ -115,8 +115,10 @@ def _parse_production_csv(content: bytes) -> dict:
             "SmartEV production report is missing the expected CSV header."
         ) from err
 
-    daily: dict[str, float] = {}
-    total: float | None = None
+    daily_pv: dict[str, float] = {}
+    daily_grid: dict[str, float] = {}
+    total_pv: float | None = None
+    total_grid: float | None = None
     for row in rows[header_index + 1 :]:
         if len(row) != len(header):
             raise SmartEVResponseError(
@@ -124,16 +126,18 @@ def _parse_production_csv(content: bytes) -> dict:
             )
         try:
             pv_value = float(row[2].replace(",", "."))
+            grid_value = float(row[3].replace(",", "."))
         except ValueError as err:
             raise SmartEVResponseError(
-                "SmartEV production report contains an invalid PV value."
+                "SmartEV production report contains an invalid energy value."
             ) from err
-        if not math.isfinite(pv_value):
+        if not math.isfinite(pv_value) or not math.isfinite(grid_value):
             raise SmartEVResponseError(
-                "SmartEV production report contains a non-finite PV value."
+                "SmartEV production report contains a non-finite energy value."
             )
         if row[0] == "Celkem":
-            total = pv_value
+            total_pv = pv_value
+            total_grid = grid_value
             continue
         try:
             date = datetime.strptime(row[0], "%d.%m.%Y").date()
@@ -141,14 +145,18 @@ def _parse_production_csv(content: bytes) -> dict:
             raise SmartEVResponseError(
                 "SmartEV production report contains an invalid date."
             ) from err
-        daily[date.isoformat()] = pv_value
+        daily_pv[date.isoformat()] = pv_value
+        daily_grid[date.isoformat()] = grid_value
 
-    if total is None:
+    if total_pv is None or total_grid is None:
         raise SmartEVResponseError(
             "SmartEV production report is missing its total row."
         )
 
-    return {"total": total, "daily": daily}
+    return {
+        "pv": {"total": total_pv, "daily": daily_pv},
+        "grid": {"total": total_grid, "daily": daily_grid},
+    }
 
 
 class SmartEVError(requests.RequestException):
