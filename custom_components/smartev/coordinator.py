@@ -34,7 +34,12 @@ class SmartEVCoordinator(DataUpdateCoordinator[dict]):
         """Fetch data from SmartEV."""
         try:
             now = dt_util.now()
-            data, current_year_data, current_month_data = (
+            (
+                data,
+                current_year_data,
+                current_month_data,
+                current_month_production,
+            ) = (
                 await self.hass.async_add_executor_job(
                     self._get_consumption_data, now.year, now.month
                 )
@@ -47,6 +52,19 @@ class SmartEVCoordinator(DataUpdateCoordinator[dict]):
             data["todayConsumption"] = self._period_value(
                 current_month_data, now.day
             )
+            data["currentMonthProduction"] = None
+            data["currentMonthGridEnergy"] = None
+            data["todayGridEnergy"] = None
+            if current_month_production is not None:
+                data["currentMonthProduction"] = current_month_production["pv"][
+                    "total"
+                ]
+                data["currentMonthGridEnergy"] = current_month_production["grid"][
+                    "total"
+                ]
+                data["todayGridEnergy"] = current_month_production["grid"][
+                    "daily"
+                ].get(now.date().isoformat())
             data["dailyAggregation"] = current_month_data
             return data
         except SmartEVAuthenticationError as err:
@@ -62,12 +80,23 @@ class SmartEVCoordinator(DataUpdateCoordinator[dict]):
 
     def _get_consumption_data(
         self, year: int, month: int
-    ) -> tuple[dict, dict, dict]:
+    ) -> tuple[dict, dict, dict, dict | None]:
         """Fetch all shared server aggregations without blocking HA."""
+        data = self.client.get_flat_info()
+        current_year_data = self.client.get_flat_info(year=year)
+        current_month_data = self.client.get_flat_info(year=year, month=month)
+        try:
+            current_month_production = self.client.get_production_report(
+                year=year, month=month
+            )
+        except (requests.RequestException, ValueError) as err:
+            _LOGGER.debug("Unable to update optional SmartEV production data: %s", err)
+            current_month_production = None
         return (
-            self.client.get_flat_info(),
-            self.client.get_flat_info(year=year),
-            self.client.get_flat_info(year=year, month=month),
+            data,
+            current_year_data,
+            current_month_data,
+            current_month_production,
         )
 
     @staticmethod

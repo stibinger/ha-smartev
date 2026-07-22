@@ -43,6 +43,9 @@
       "current_month_consumption": {"name": "Spotřeba za aktuální měsíc"},
       "current_year_consumption": {"name": "Spotřeba za aktuální rok"},
       "today_consumption": {"name": "Dnešní spotřeba"},
+      "current_month_production": {"name": "Výroba FVE za aktuální měsíc"},
+      "current_month_grid_energy": {"name": "Energie ze sítě za aktuální měsíc"},
+      "today_grid_energy": {"name": "Dnešní energie ze sítě"},
       "last_reading": {"name": "Čas posledního odečtu"}
     }
   }

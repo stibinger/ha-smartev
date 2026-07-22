@@ -31,6 +31,8 @@ The integration currently supports electricity meters and has been designed for 
 
 ## Features
 
+## Features
+
 - Secure authentication
 - Automatic session management
 - Config Flow support
@@ -38,7 +40,12 @@ The integration currently supports electricity meters and has been designed for 
 - Automatic migration of existing configurations
 - DataUpdateCoordinator-based updates
 - English and Czech localization
-- Home Assistant Energy Dashboard compatible
+- Compatible with the Home Assistant Energy Dashboard
+- Current electricity meter reading
+- Daily, monthly and yearly electricity consumption
+- Current month photovoltaic (PV) production
+- Today's grid energy consumption
+- Current month grid energy consumption
 
 ---
 
@@ -119,6 +126,9 @@ The integration currently creates sensors for:
 - Yearly consumption
 - Monthly consumption
 - Today's consumption
+- Current month photovoltaic (PV) production
+- Today's grid energy consumption
+- Current month grid energy consumption
 - Last meter reading (diagnostic)
 
 The list of entities will expand as new SmartEV functionality becomes available.
@@ -182,14 +192,21 @@ Integrace aktuálně podporuje elektroměry a je připravena na budoucí rozší
 
 ## Funkce
 
-- Bezpečné přihlášení
-- Automatická správa přihlášené relace
-- Podpora Config Flow
+## Funkce
+
+- Bezpečné ověřování
+- Automatická správa relace
+- Podpora průvodce konfigurací (Config Flow)
 - Automatické vyhledání bytů
-- Automatická migrace existující konfigurace
-- Aktualizace pomocí DataUpdateCoordinator
-- Lokalizace (čeština / angličtina)
-- Kompatibilita s Home Assistant Energy Dashboard
+- Automatická migrace stávajících konfigurací
+- Aktualizace založené na DataUpdateCoordinator
+- Lokalizace do češtiny a angličtiny
+- Kompatibilita s energetickým dashboardem Home Assistant
+- Aktuální stav elektroměru
+- Denní, měsíční a roční spotřeba elektřiny
+- Výroba z fotovoltaiky za aktuální měsíc
+- Dnešní odběr elektřiny ze sítě
+- Odběr elektřiny ze sítě za aktuální měsíc
 
 ---
 
@@ -263,6 +280,15 @@ Po dokončení konfigurace budou automaticky vytvořeny všechny podporované en
 ## Aktuální entity
 
 Integrace automaticky vytváří entity pro podporovaná měřidla SmartEV.
+
+- Celková energie
+- Roční spotřeba
+- Měsíční spotřeba
+- Dnešní spotřeba
+- Výroba z fotovoltaiky za aktuální měsíc
+- Dnešní odběr elektřiny ze sítě
+- Odběr elektřiny ze sítě za aktuální měsíc
+- Čas posledního odečtu (diagnostika)
 
 Seznam entit se bude rozšiřovat spolu s podporou dalších funkcí platformy.
 
