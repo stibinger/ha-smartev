@@ -186,12 +186,14 @@ class SmartEVPeriodConsumptionSensor(SmartEVBaseSensor):
 class SmartEVPeriodProductionSensor(SmartEVPeriodConsumptionSensor):
     """SmartEV server-provided period PV production."""
 
+    _attr_state_class = SensorStateClass.TOTAL_INCREASING
     _attr_icon = "mdi:solar-power"
 
 
 class SmartEVPeriodGridEnergySensor(SmartEVPeriodConsumptionSensor):
     """SmartEV server-provided period grid energy."""
 
+    _attr_state_class = SensorStateClass.TOTAL_INCREASING
     _attr_icon = "mdi:transmission-tower"
 
 

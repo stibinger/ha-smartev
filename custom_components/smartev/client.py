@@ -108,6 +108,10 @@ def _parse_production_csv(content: bytes) -> dict:
         raise SmartEVResponseError(
             "SmartEV returned an invalid production report encoding."
         ) from err
+    except csv.Error as err:
+        raise SmartEVResponseError(
+            "SmartEV returned an invalid production report CSV."
+        ) from err
 
     header = ["Datum", "Celkem [kWh]", "FVE [kWh]", "Síť [kWh]"]
     try:
@@ -251,16 +255,25 @@ class SmartEVClient:
         for operator in data:
             if not isinstance(operator, dict):
                 continue
-            for jom in operator.get("joms", []):
+            joms = operator.get("joms", [])
+            if not isinstance(joms, list):
+                continue
+            for jom in joms:
                 if not isinstance(jom, dict):
                     continue
                 jom_id = jom.get("id")
                 if not isinstance(jom_id, int) or isinstance(jom_id, bool):
                     continue
-                for building in jom.get("buildings", []):
+                buildings = jom.get("buildings", [])
+                if not isinstance(buildings, list):
+                    continue
+                for building in buildings:
                     if not isinstance(building, dict):
                         continue
-                    for flat in building.get("flats", []):
+                    flats = building.get("flats", [])
+                    if not isinstance(flats, list):
+                        continue
+                    for flat in flats:
                         if isinstance(flat, dict) and flat.get("id") == self._flat_id:
                             matches.add(jom_id)
 
