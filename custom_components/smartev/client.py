@@ -101,6 +101,8 @@ def _validate_flat_info(data: object) -> dict:
 def _parse_production_csv(content: bytes) -> dict:
     """Parse an apartment PV production report CSV response."""
     try:
+        # SmartEV currently returns Windows-1250 encoded CSV even though
+        # the HTTP Content-Type declares UTF-8.
         rows = list(csv.reader(StringIO(content.decode("cp1250")), delimiter=";"))
     except UnicodeDecodeError as err:
         raise SmartEVResponseError(

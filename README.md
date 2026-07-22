@@ -31,6 +31,8 @@ The integration currently supports electricity meters and has been designed for 
 
 ## Features
 
+## Features
+
 - Secure authentication
 - Automatic session management
 - Config Flow support
@@ -38,7 +40,13 @@ The integration currently supports electricity meters and has been designed for 
 - Automatic migration of existing configurations
 - DataUpdateCoordinator-based updates
 - English and Czech localization
-- Home Assistant Energy Dashboard compatible
+- Compatible with the Home Assistant Energy Dashboard
+- Current electricity meter reading
+- Daily, monthly and yearly electricity consumption
+- Today's photovoltaic (PV) production
+- Current month photovoltaic (PV) production
+- Today's grid energy consumption
+- Current month grid energy consumption
 
 ---
 
@@ -182,14 +190,22 @@ Integrace aktuálně podporuje elektroměry a je připravena na budoucí rozší
 
 ## Funkce
 
-- Bezpečné přihlášení
-- Automatická správa přihlášené relace
-- Podpora Config Flow
+## Funkce
+
+- Bezpečné ověřování
+- Automatická správa relace
+- Podpora průvodce konfigurací (Config Flow)
 - Automatické vyhledání bytů
-- Automatická migrace existující konfigurace
-- Aktualizace pomocí DataUpdateCoordinator
-- Lokalizace (čeština / angličtina)
-- Kompatibilita s Home Assistant Energy Dashboard
+- Automatická migrace stávajících konfigurací
+- Aktualizace založené na DataUpdateCoordinator
+- Lokalizace do češtiny a angličtiny
+- Kompatibilita s energetickým dashboardem Home Assistant
+- Aktuální stav elektroměru
+- Denní, měsíční a roční spotřeba elektřiny
+- Dnešní výroba z fotovoltaiky (FVE)
+- Výroba z fotovoltaiky za aktuální měsíc
+- Dnešní odběr elektřiny ze sítě
+- Odběr elektřiny ze sítě za aktuální měsíc
 
 ---
 
