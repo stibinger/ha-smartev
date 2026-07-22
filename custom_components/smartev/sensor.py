@@ -52,6 +52,18 @@ async def async_setup_entry(
                 "today_consumption",
                 "todayConsumption",
             ),
+            SmartEVPeriodProductionSensor(
+                coordinator,
+                flat_id,
+                "current_month_production",
+                "currentMonthProduction",
+            ),
+            SmartEVPeriodProductionSensor(
+                coordinator,
+                flat_id,
+                "today_production",
+                "todayProduction",
+            ),
             SmartEVLastReadingSensor(coordinator, flat_id),
         ]
     )
@@ -157,6 +169,12 @@ class SmartEVPeriodConsumptionSensor(SmartEVBaseSensor):
             return None
 
         return self.coordinator.data.get(self._data_key)
+
+
+class SmartEVPeriodProductionSensor(SmartEVPeriodConsumptionSensor):
+    """SmartEV server-provided period PV production."""
+
+    _attr_icon = "mdi:solar-power"
 
 
 class SmartEVLastReadingSensor(SmartEVBaseSensor):

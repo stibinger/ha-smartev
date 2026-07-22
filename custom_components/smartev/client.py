@@ -3,7 +3,9 @@
 
 """SmartEV API client."""
 
+import csv
 from datetime import UTC, datetime
+from io import StringIO
 import math
 import re
 from urllib.parse import urlparse
@@ -96,6 +98,59 @@ def _validate_flat_info(data: object) -> dict:
     return data
 
 
+def _parse_production_csv(content: bytes) -> dict:
+    """Parse an apartment PV production report CSV response."""
+    try:
+        rows = list(csv.reader(StringIO(content.decode("cp1250")), delimiter=";"))
+    except UnicodeDecodeError as err:
+        raise SmartEVResponseError(
+            "SmartEV returned an invalid production report encoding."
+        ) from err
+
+    header = ["Datum", "Celkem [kWh]", "FVE [kWh]", "Síť [kWh]"]
+    try:
+        header_index = rows.index(header)
+    except ValueError as err:
+        raise SmartEVResponseError(
+            "SmartEV production report is missing the expected CSV header."
+        ) from err
+
+    daily: dict[str, float] = {}
+    total: float | None = None
+    for row in rows[header_index + 1 :]:
+        if len(row) != len(header):
+            raise SmartEVResponseError(
+                "SmartEV production report contains an invalid CSV row."
+            )
+        try:
+            pv_value = float(row[2].replace(",", "."))
+        except ValueError as err:
+            raise SmartEVResponseError(
+                "SmartEV production report contains an invalid PV value."
+            ) from err
+        if not math.isfinite(pv_value):
+            raise SmartEVResponseError(
+                "SmartEV production report contains a non-finite PV value."
+            )
+        if row[0] == "Celkem":
+            total = pv_value
+            continue
+        try:
+            date = datetime.strptime(row[0], "%d.%m.%Y").date()
+        except ValueError as err:
+            raise SmartEVResponseError(
+                "SmartEV production report contains an invalid date."
+            ) from err
+        daily[date.isoformat()] = pv_value
+
+    if total is None:
+        raise SmartEVResponseError(
+            "SmartEV production report is missing its total row."
+        )
+
+    return {"total": total, "daily": daily}
+
+
 class SmartEVError(requests.RequestException):
     """Base exception for SmartEV client errors."""
 
@@ -118,6 +173,7 @@ class SmartEVClient:
         self._email = email
         self._password = password
         self._flat_id = flat_id
+        self._jom_id: int | None = None
         self.session = requests.Session()
 
     def login(self) -> bool:
@@ -165,6 +221,65 @@ class SmartEVClient:
             raise SmartEVResponseError(
                 "SmartEV returned an invalid JSON response."
             ) from err
+
+    def _get_production_jom_id(self) -> int:
+        """Return the JOM containing the configured apartment."""
+        if self._flat_id is None:
+            raise ValueError("flat_id is required for production reports.")
+        if self._jom_id is not None:
+            return self._jom_id
+
+        data = self._get_json(
+            "/reports/prehled-vyroby-data.php", action="getJoms"
+        )
+        if not isinstance(data, list):
+            raise SmartEVResponseError(
+                "SmartEV production report topology must be a JSON array."
+            )
+
+        matches: set[int] = set()
+        for operator in data:
+            if not isinstance(operator, dict):
+                continue
+            for jom in operator.get("joms", []):
+                if not isinstance(jom, dict):
+                    continue
+                jom_id = jom.get("id")
+                if not isinstance(jom_id, int) or isinstance(jom_id, bool):
+                    continue
+                for building in jom.get("buildings", []):
+                    if not isinstance(building, dict):
+                        continue
+                    for flat in building.get("flats", []):
+                        if isinstance(flat, dict) and flat.get("id") == self._flat_id:
+                            matches.add(jom_id)
+
+        if len(matches) != 1:
+            raise SmartEVResponseError(
+                "The configured apartment does not map to exactly one production JOM."
+            )
+        self._jom_id = matches.pop()
+        return self._jom_id
+
+    def get_production_report(self, year: int, month: int) -> dict:
+        """Return PV production data for the configured apartment and period."""
+        if self._flat_id is None:
+            raise ValueError("flat_id is required for production reports.")
+        response = self.session.get(
+            self.BASE_URL + "/reports/prehled-vyroby-data.php",
+            params={
+                "action": "getReportCsv",
+                "jomId": self._get_production_jom_id(),
+                "flatId": self._flat_id,
+                "month": month,
+                "year": year,
+            },
+            timeout=self.REQUEST_TIMEOUT,
+        )
+        response.raise_for_status()
+        if _is_authentication_response(response):
+            raise SmartEVAuthenticationError("SmartEV authentication has expired.")
+        return _parse_production_csv(response.content)
 
     def discover_apartments(self) -> list[dict]:
         """Return apartments exposed to the authenticated SmartEV account."""

@@ -34,7 +34,12 @@ class SmartEVCoordinator(DataUpdateCoordinator[dict]):
         """Fetch data from SmartEV."""
         try:
             now = dt_util.now()
-            data, current_year_data, current_month_data = (
+            (
+                data,
+                current_year_data,
+                current_month_data,
+                current_month_production,
+            ) = (
                 await self.hass.async_add_executor_job(
                     self._get_consumption_data, now.year, now.month
                 )
@@ -46,6 +51,10 @@ class SmartEVCoordinator(DataUpdateCoordinator[dict]):
             )
             data["todayConsumption"] = self._period_value(
                 current_month_data, now.day
+            )
+            data["currentMonthProduction"] = current_month_production["total"]
+            data["todayProduction"] = current_month_production["daily"].get(
+                now.date().isoformat()
             )
             data["dailyAggregation"] = current_month_data
             return data
@@ -62,12 +71,13 @@ class SmartEVCoordinator(DataUpdateCoordinator[dict]):
 
     def _get_consumption_data(
         self, year: int, month: int
-    ) -> tuple[dict, dict, dict]:
+    ) -> tuple[dict, dict, dict, dict]:
         """Fetch all shared server aggregations without blocking HA."""
         return (
             self.client.get_flat_info(),
             self.client.get_flat_info(year=year),
             self.client.get_flat_info(year=year, month=month),
+            self.client.get_production_report(year=year, month=month),
         )
 
     @staticmethod
