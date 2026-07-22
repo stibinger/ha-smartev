@@ -58,12 +58,6 @@ async def async_setup_entry(
                 "current_month_production",
                 "currentMonthProduction",
             ),
-            SmartEVPeriodProductionSensor(
-                coordinator,
-                flat_id,
-                "today_production",
-                "todayProduction",
-            ),
             SmartEVPeriodGridEnergySensor(
                 coordinator,
                 flat_id,

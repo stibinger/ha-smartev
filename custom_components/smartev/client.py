@@ -121,7 +121,6 @@ def _parse_production_csv(content: bytes) -> dict:
             "SmartEV production report is missing the expected CSV header."
         ) from err
 
-    daily_pv: dict[str, float] = {}
     daily_grid: dict[str, float] = {}
     total_pv: float | None = None
     total_grid: float | None = None
@@ -151,7 +150,6 @@ def _parse_production_csv(content: bytes) -> dict:
             raise SmartEVResponseError(
                 "SmartEV production report contains an invalid date."
             ) from err
-        daily_pv[date.isoformat()] = pv_value
         daily_grid[date.isoformat()] = grid_value
 
     if total_pv is None or total_grid is None:
@@ -160,7 +158,7 @@ def _parse_production_csv(content: bytes) -> dict:
         )
 
     return {
-        "pv": {"total": total_pv, "daily": daily_pv},
+        "pv": {"total": total_pv},
         "grid": {"total": total_grid, "daily": daily_grid},
     }
 

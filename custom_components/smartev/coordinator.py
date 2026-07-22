@@ -53,16 +53,12 @@ class SmartEVCoordinator(DataUpdateCoordinator[dict]):
                 current_month_data, now.day
             )
             data["currentMonthProduction"] = None
-            data["todayProduction"] = None
             data["currentMonthGridEnergy"] = None
             data["todayGridEnergy"] = None
             if current_month_production is not None:
                 data["currentMonthProduction"] = current_month_production["pv"][
                     "total"
                 ]
-                data["todayProduction"] = current_month_production["pv"]["daily"].get(
-                    now.date().isoformat()
-                )
                 data["currentMonthGridEnergy"] = current_month_production["grid"][
                     "total"
                 ]
