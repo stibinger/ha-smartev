@@ -44,6 +44,9 @@
       "current_year_consumption": {"name": "Spotřeba za aktuální rok"},
       "today_consumption": {"name": "Dnešní spotřeba"},
       "current_month_production": {"name": "Výroba FVE za aktuální měsíc"},
+      "latest_daily_production": {"name": "Poslední denní výroba FVE"},
+      "estimated_pv_production": {"name": "Odhadovaná výroba FVE"},
+      "estimated_pv_energy_total": {"name": "Celková odhadovaná výroba FVE"},
       "current_month_grid_energy": {"name": "Energie ze sítě za aktuální měsíc"},
       "today_grid_energy": {"name": "Dnešní energie ze sítě"},
       "last_reading": {"name": "Čas posledního odečtu"}

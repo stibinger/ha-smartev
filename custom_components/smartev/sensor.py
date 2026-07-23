@@ -58,6 +58,9 @@ async def async_setup_entry(
                 "current_month_production",
                 "currentMonthProduction",
             ),
+            SmartEVLatestDailyProductionSensor(coordinator, flat_id),
+            SmartEVEstimatedDailyProductionSensor(coordinator, flat_id),
+            SmartEVEstimatedProductionTotalSensor(coordinator, flat_id),
             SmartEVPeriodGridEnergySensor(
                 coordinator,
                 flat_id,
@@ -183,6 +186,90 @@ class SmartEVPeriodProductionSensor(SmartEVPeriodConsumptionSensor):
     _attr_state_class = SensorStateClass.TOTAL_INCREASING
     _attr_icon = "mdi:solar-power"
 
+
+class SmartEVLatestDailyProductionSensor(SmartEVPeriodProductionSensor):
+    """Latest daily PV production published by SmartEV."""
+
+    # A completed day's record is neither a cumulative total nor a current
+    # measurement. Override the production sensor's inherited state class.
+    _attr_state_class = None
+
+    def __init__(self, coordinator: SmartEVCoordinator, flat_id: int) -> None:
+        super().__init__(
+            coordinator,
+            flat_id,
+            "latest_daily_production",
+            "latestDailyProduction",
+        )
+
+    @property
+    def extra_state_attributes(self) -> dict[str, str]:
+        """Return the date to which the delayed production value applies."""
+        production_date = self.coordinator.data.get("latestDailyProductionDate")
+        return {"production_date": production_date} if production_date else {}
+
+
+class SmartEVEstimatedDailyProductionSensor(SmartEVPeriodProductionSensor):
+    """Today's apartment PV production estimated from the live JOM meter."""
+
+    _attr_state_class = SensorStateClass.TOTAL
+
+    def __init__(self, coordinator: SmartEVCoordinator, flat_id: int) -> None:
+        super().__init__(
+            coordinator,
+            flat_id,
+            "estimated_pv_production",
+            "estimated_today",
+        )
+        self._attr_unique_id = (
+            f"meter_{self._meter_id}_estimated_pv_production"
+        )
+
+    @property
+    def available(self) -> bool:
+        """Return whether automatic calibration is valid."""
+        allocation = self.coordinator.data.get("pvAllocation") or {}
+        return super().available and bool(allocation.get("available"))
+
+    @property
+    def native_value(self) -> int | float | None:
+        """Return today's estimated apartment PV production."""
+        allocation = self.coordinator.data.get("pvAllocation") or {}
+        return allocation.get(self._data_key)
+
+    @property
+    def extra_state_attributes(self) -> dict:
+        """Expose calibration diagnostics."""
+        allocation = self.coordinator.data.get("pvAllocation") or {}
+        return {
+            key: allocation.get(key)
+            for key in (
+                "allocation_coefficient",
+                "sample_days",
+                "used_calibration_samples",
+                "skipped_zero_grid_samples",
+                "last_calibration",
+                "minimum_coefficient",
+                "maximum_coefficient",
+                "standard_deviation",
+                "coefficient_of_variation",
+            )
+            if allocation.get(key) is not None
+        }
+
+
+class SmartEVEstimatedProductionTotalSensor(SmartEVEstimatedDailyProductionSensor):
+    """Monotonic apartment PV estimate for the Energy Dashboard."""
+
+    _attr_translation_key = "estimated_pv_energy_total"
+    _attr_state_class = SensorStateClass.TOTAL_INCREASING
+    _attr_icon = "mdi:solar-power-variant"
+
+    def __init__(self, coordinator: SmartEVCoordinator, flat_id: int) -> None:
+        super().__init__(coordinator, flat_id)
+        self._data_key = "estimated_total"
+        self._attr_translation_key = "estimated_pv_energy_total"
+        self._attr_unique_id = f"meter_{self._meter_id}_estimated_pv_energy_total"
 
 class SmartEVPeriodGridEnergySensor(SmartEVPeriodConsumptionSensor):
     """SmartEV server-provided period grid energy."""

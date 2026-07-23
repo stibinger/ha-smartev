@@ -43,6 +43,7 @@ The integration currently supports electricity meters and has been designed for 
 - Compatible with the Home Assistant Energy Dashboard
 - Current electricity meter reading
 - Daily, monthly and yearly electricity consumption
+- Latest daily PV production
 - Current month photovoltaic (PV) production
 - Today's grid energy consumption
 - Current month grid energy consumption
@@ -126,12 +127,18 @@ The integration currently creates sensors for:
 - Yearly consumption
 - Monthly consumption
 - Today's consumption
+- Latest daily PV production
 - Current month photovoltaic (PV) production
 - Today's grid energy consumption
 - Current month grid energy consumption
 - Last meter reading (diagnostic)
 
 The list of entities will expand as new SmartEV functionality becomes available.
+
+SmartEV publishes daily PV production with a one-day delay. The latest daily PV
+production sensor therefore shows the newest completed calendar day's value and
+ignores today's placeholder row. Its `production_date` attribute identifies the
+reported day.
 
 ---
 
@@ -204,6 +211,7 @@ Integrace aktuálně podporuje elektroměry a je připravena na budoucí rozší
 - Kompatibilita s energetickým dashboardem Home Assistant
 - Aktuální stav elektroměru
 - Denní, měsíční a roční spotřeba elektřiny
+- Poslední denní výroba FVE
 - Výroba z fotovoltaiky za aktuální měsíc
 - Dnešní odběr elektřiny ze sítě
 - Odběr elektřiny ze sítě za aktuální měsíc
@@ -285,12 +293,18 @@ Integrace automaticky vytváří entity pro podporovaná měřidla SmartEV.
 - Roční spotřeba
 - Měsíční spotřeba
 - Dnešní spotřeba
+- Poslední denní výroba FVE
 - Výroba z fotovoltaiky za aktuální měsíc
 - Dnešní odběr elektřiny ze sítě
 - Odběr elektřiny ze sítě za aktuální měsíc
 - Čas posledního odečtu (diagnostika)
 
 Seznam entit se bude rozšiřovat spolu s podporou dalších funkcí platformy.
+
+SmartEV zveřejňuje denní výrobu FVE se zpožděním jednoho dne. Senzor Poslední
+denní výroba FVE proto zobrazuje hodnotu za nejnovější dokončený kalendářní den
+
+a ignoruje dnešní zástupný řádek. Atribut `production_date` určuje vykázaný den.
 
 ---
 

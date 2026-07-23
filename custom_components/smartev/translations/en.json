@@ -44,6 +44,9 @@
       "current_year_consumption": {"name": "Current year consumption"},
       "today_consumption": {"name": "Today's consumption"},
       "current_month_production": {"name": "Current month PV production"},
+      "latest_daily_production": {"name": "Latest daily PV production"},
+      "estimated_pv_production": {"name": "Estimated PV production"},
+      "estimated_pv_energy_total": {"name": "Estimated PV production total"},
       "current_month_grid_energy": {"name": "Current month grid energy"},
       "today_grid_energy": {"name": "Today's grid energy"},
       "last_reading": {"name": "Last reading"}

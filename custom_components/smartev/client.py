@@ -121,6 +121,7 @@ def _parse_production_csv(content: bytes) -> dict:
             "SmartEV production report is missing the expected CSV header."
         ) from err
 
+    daily_pv: dict[str, float] = {}
     daily_grid: dict[str, float] = {}
     total_pv: float | None = None
     total_grid: float | None = None
@@ -150,6 +151,7 @@ def _parse_production_csv(content: bytes) -> dict:
             raise SmartEVResponseError(
                 "SmartEV production report contains an invalid date."
             ) from err
+        daily_pv[date.isoformat()] = pv_value
         daily_grid[date.isoformat()] = grid_value
 
     if total_pv is None or total_grid is None:
@@ -158,7 +160,7 @@ def _parse_production_csv(content: bytes) -> dict:
         )
 
     return {
-        "pv": {"total": total_pv},
+        "pv": {"total": total_pv, "daily": daily_pv},
         "grid": {"total": total_grid, "daily": daily_grid},
     }
 
@@ -301,6 +303,81 @@ class SmartEVClient:
         if _is_authentication_response(response):
             raise SmartEVAuthenticationError("SmartEV authentication has expired.")
         return _parse_production_csv(response.content)
+
+    def get_jom_pv_data(self, year: int, month: int) -> dict | None:
+        """Return the JOM cumulative PV register and daily production."""
+        jom_id = self._get_production_jom_id()
+        data = self._get_json(
+            "/data/jomMetersChart.php",
+            jomId=jom_id,
+            meterType=1,
+            y=year,
+            m=month,
+            d=0,
+        )
+        if not isinstance(data, dict) or data.get("id") != jom_id:
+            raise SmartEVResponseError(
+                "SmartEV JOM PV response has an invalid identity."
+            )
+        meters = data.get("meters")
+        if not isinstance(meters, list):
+            raise SmartEVResponseError(
+                "SmartEV JOM PV response is missing its meter list."
+            )
+
+        pv_meters = [
+            meter
+            for meter in meters
+            if isinstance(meter, dict) and meter.get("type") == 1
+        ]
+        if not pv_meters:
+            return None
+        meter = next(
+            (item for item in pv_meters if item.get("id") == "sum"),
+            pv_meters[0],
+        )
+        register = meter.get("value1")
+        if (
+            isinstance(register, bool)
+            or not isinstance(register, (int, float))
+            or not math.isfinite(register)
+        ):
+            raise SmartEVResponseError(
+                "SmartEV JOM PV register must be a finite number."
+            )
+
+        chart_data = meter.get("chartData")
+        if not isinstance(chart_data, list):
+            raise SmartEVResponseError(
+                "SmartEV JOM PV response is missing its daily history."
+            )
+        daily: dict[str, float] = {}
+        for row in chart_data:
+            if not isinstance(row, dict):
+                continue
+            value = row.get("val1")
+            day = row.get("idx")
+            if (
+                isinstance(value, bool)
+                or not isinstance(value, (int, float))
+                or not math.isfinite(value)
+            ):
+                continue
+            try:
+                production_date = datetime(
+                    year, month, int(str(day)), tzinfo=UTC
+                ).date()
+            except (TypeError, ValueError):
+                continue
+            daily[production_date.isoformat()] = float(value)
+
+        return {
+            "jom_id": jom_id,
+            "meter_id": meter.get("id"),
+            "register": float(register),
+            "timestamp": meter.get("dt"),
+            "daily": daily,
+        }
 
     def discover_apartments(self) -> list[dict]:
         """Return apartments exposed to the authenticated SmartEV account."""
