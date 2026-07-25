@@ -25,6 +25,7 @@ from .const import (
     PV_ALLOCATION_SIGNIFICANT_CHANGE,
     PV_ALLOCATION_ZERO_GRID_IMPORT,
 )
+from .cumulative import DailyCumulativeEnergyCounter
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -103,6 +104,7 @@ class ApartmentPVAllocation:
             "last_jom_register": None,
             "last_jom_daily": None,
             "active_coefficient": None,
+            "cumulative_counters": {},
         }
 
     async def async_load(self) -> None:
@@ -113,6 +115,30 @@ class ApartmentPVAllocation:
         self._state.update(stored)
         if not isinstance(self._state.get("history"), dict):
             self._state["history"] = {}
+        counters = self._state.setdefault("cumulative_counters", {})
+        if not isinstance(counters, dict):
+            counters = {}
+            self._state["cumulative_counters"] = counters
+        if "pv" not in counters:
+            estimated_total = (
+                self._finite_number(self._state.get("estimated_total")) or 0.0
+            )
+            estimated_today = (
+                self._finite_number(self._state.get("estimated_today")) or 0.0
+            )
+            counters["pv"] = {
+                "anchor": max(0.0, estimated_total - estimated_today),
+                "total": estimated_total,
+                "today": estimated_today,
+                "date": self._state.get("estimate_date"),
+                "last_source": self._finite_number(
+                    self._state.get("last_jom_daily")
+                ),
+                "active_multiplier": self._finite_number(
+                    self._state.get("active_coefficient")
+                ),
+                "last_rollover": None,
+            }
 
     async def async_save(self) -> None:
         """Immediately persist state during config-entry unload."""
@@ -161,7 +187,7 @@ class ApartmentPVAllocation:
             self._schedule_save()
             return self._result(False)
 
-        self._update_estimate(today, register, daily_jom, coefficient)
+        self._update_estimate(now, today, register, daily_jom, coefficient)
         self._schedule_save()
         return self._result(True)
 
@@ -321,50 +347,24 @@ class ApartmentPVAllocation:
 
     def _update_estimate(
         self,
+        now: datetime,
         today: str,
         register: float,
         daily_jom: dict[str, Any],
         coefficient: float,
     ) -> None:
         """Accumulate only new JOM production using the active coefficient."""
-        estimate_date = self._state.get("estimate_date")
         last_register = self._finite_number(self._state.get("last_jom_register"))
         current_daily = self._finite_number(daily_jom.get(today))
-        previous_daily = self._finite_number(self._state.get("last_jom_daily"))
-        active = self._finite_number(self._state.get("active_coefficient"))
-        estimated_total = (
-            self._finite_number(self._state.get("estimated_total")) or 0.0
+        counters = self._state.setdefault("cumulative_counters", {})
+        counter_state = counters.setdefault(
+            "pv", DailyCumulativeEnergyCounter.empty_state()
         )
-
-        if estimate_date is None:
-            initial_estimate = max(0.0, current_daily or 0.0) * coefficient
-            self._state["estimate_date"] = today
-            self._state["estimated_today"] = initial_estimate
-            self._state["estimated_total"] = max(estimated_total, initial_estimate)
-        elif estimate_date != today:
-            final_previous = self._finite_number(daily_jom.get(estimate_date))
-            if (
-                final_previous is not None
-                and previous_daily is not None
-                and final_previous >= previous_daily
-                and active is not None
-            ):
-                estimated_total += (final_previous - previous_daily) * active
-            initial_estimate = max(0.0, current_daily or 0.0) * coefficient
-            self._state["estimate_date"] = today
-            self._state["estimated_today"] = initial_estimate
-            self._state["estimated_total"] = estimated_total + initial_estimate
-        elif (
-            current_daily is not None
-            and previous_daily is not None
-            and current_daily >= previous_daily
-            and active is not None
-        ):
-            increment = (current_daily - previous_daily) * active
-            self._state["estimated_today"] = (
-                self._finite_number(self._state.get("estimated_today")) or 0.0
-            ) + increment
-            self._state["estimated_total"] = estimated_total + increment
+        counter = DailyCumulativeEnergyCounter(counter_state)
+        counter.update(now, current_daily, daily_jom, coefficient)
+        self._state["estimate_date"] = counter_state["date"]
+        self._state["estimated_today"] = counter_state["today"]
+        self._state["estimated_total"] = counter_state["total"]
 
         if last_register is not None and register < last_register:
             _LOGGER.warning(
@@ -379,6 +379,22 @@ class ApartmentPVAllocation:
         self._state["active_coefficient"] = coefficient
         self._state["last_jom_register"] = register
         self._state["last_jom_daily"] = current_daily
+
+    def update_grid(self, now: datetime, today_grid_energy: Any) -> dict[str, Any]:
+        """Update cumulative imported grid energy from the live daily value."""
+        counters = self._state.setdefault("cumulative_counters", {})
+        counter_state = counters.setdefault(
+            "grid", DailyCumulativeEnergyCounter.empty_state()
+        )
+        counter = DailyCumulativeEnergyCounter(counter_state)
+        total = counter.update(now, today_grid_energy)
+        self._schedule_save()
+        return {
+            "available": self._finite_number(today_grid_energy) is not None,
+            "total": total,
+            "today_grid_energy": self._finite_number(today_grid_energy),
+            **counter.attributes,
+        }
 
     def _result(self, available: bool) -> dict[str, Any]:
         return {

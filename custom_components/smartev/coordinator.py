@@ -103,6 +103,9 @@ class SmartEVCoordinator(DataUpdateCoordinator[dict]):
                 apartment_daily_pv,
                 apartment_daily_grid,
             )
+            data["gridCumulative"] = self.pv_allocation.update_grid(
+                now, data["todayGridEnergy"]
+            )
             return data
         except SmartEVAuthenticationError as err:
             raise ConfigEntryAuthFailed("SmartEV authentication failed") from err

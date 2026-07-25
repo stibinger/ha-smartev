@@ -49,6 +49,7 @@
       "estimated_pv_energy_total": {"name": "Estimated PV production total"},
       "current_month_grid_energy": {"name": "Current month grid energy"},
       "today_grid_energy": {"name": "Today's grid energy"},
+      "total_grid_energy": {"name": "Total Grid Energy"},
       "last_reading": {"name": "Last reading"}
     }
   }

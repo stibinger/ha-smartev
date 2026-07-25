@@ -73,6 +73,7 @@ async def async_setup_entry(
                 "today_grid_energy",
                 "todayGridEnergy",
             ),
+            SmartEVTotalGridEnergySensor(coordinator, flat_id),
             SmartEVLastReadingSensor(coordinator, flat_id),
         ]
     )
@@ -276,6 +277,46 @@ class SmartEVPeriodGridEnergySensor(SmartEVPeriodConsumptionSensor):
 
     _attr_state_class = SensorStateClass.TOTAL_INCREASING
     _attr_icon = "mdi:transmission-tower"
+
+
+class SmartEVTotalGridEnergySensor(SmartEVBaseSensor):
+    """Cumulative public-grid import for the Energy Dashboard."""
+
+    _attr_translation_key = "total_grid_energy"
+    _attr_native_unit_of_measurement = UnitOfEnergy.KILO_WATT_HOUR
+    _attr_device_class = SensorDeviceClass.ENERGY
+    _attr_state_class = SensorStateClass.TOTAL_INCREASING
+    _attr_icon = "mdi:transmission-tower-import"
+
+    def __init__(self, coordinator: SmartEVCoordinator, flat_id: int) -> None:
+        super().__init__(coordinator, flat_id)
+        self._attr_unique_id = f"meter_{self._meter_id}_total_grid_energy"
+
+    @property
+    def available(self) -> bool:
+        """Return whether the current daily grid value is available."""
+        cumulative = self.coordinator.data.get("gridCumulative") or {}
+        return super().available and bool(cumulative.get("available"))
+
+    @property
+    def native_value(self) -> int | float | None:
+        """Return cumulative imported grid energy."""
+        cumulative = self.coordinator.data.get("gridCumulative") or {}
+        return cumulative.get("total")
+
+    @property
+    def extra_state_attributes(self) -> dict:
+        """Expose concise cumulative-counter diagnostics."""
+        cumulative = self.coordinator.data.get("gridCumulative") or {}
+        return {
+            key: cumulative.get(key)
+            for key in (
+                "today_grid_energy",
+                "anchor_value",
+                "last_rollover",
+            )
+            if cumulative.get(key) is not None
+        }
 
 
 class SmartEVLastReadingSensor(SmartEVBaseSensor):

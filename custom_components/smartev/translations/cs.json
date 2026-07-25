@@ -49,6 +49,7 @@
       "estimated_pv_energy_total": {"name": "Celková odhadovaná výroba FVE"},
       "current_month_grid_energy": {"name": "Energie ze sítě za aktuální měsíc"},
       "today_grid_energy": {"name": "Dnešní energie ze sítě"},
+      "total_grid_energy": {"name": "Celková energie ze sítě"},
       "last_reading": {"name": "Čas posledního odečtu"}
     }
   }
