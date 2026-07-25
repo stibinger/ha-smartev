@@ -31,8 +31,6 @@ The integration currently supports electricity meters and has been designed for 
 
 ## Features
 
-## Features
-
 - Secure authentication
 - Automatic session management
 - Config Flow support
@@ -47,6 +45,10 @@ The integration currently supports electricity meters and has been designed for 
 - Current month photovoltaic (PV) production
 - Today's grid energy consumption
 - Current month grid energy consumption
+- Automatic PV allocation coefficient calibration
+- Estimated apartment PV production
+- Cumulative estimated PV production for the Home Assistant Energy Dashboard
+- Cumulative grid energy import for the Home Assistant Energy Dashboard
 
 ---
 
@@ -131,6 +133,9 @@ The integration currently creates sensors for:
 - Current month photovoltaic (PV) production
 - Today's grid energy consumption
 - Current month grid energy consumption
+- Estimated PV production
+- Total estimated PV production
+- Total grid energy
 - Last meter reading (diagnostic)
 
 The list of entities will expand as new SmartEV functionality becomes available.
@@ -142,40 +147,77 @@ reported day.
 
 ---
 
+## Home Assistant Energy Dashboard
+
+Apartment accounts do not expose cumulative photovoltaic production through the
+SmartEV API.
+
+To provide Energy Dashboard compatibility, the integration automatically
+calculates a stable apartment allocation coefficient from historical SmartEV
+data and estimates live apartment PV production from the JOM photovoltaic
+meter.
+
+The calibration process is fully automatic and requires no user
+configuration.
+
+Days with zero grid import are excluded from calibration because they would
+otherwise distort the calculated apartment allocation coefficient.
+
+For the Home Assistant Energy Dashboard configure:
+
+- Grid consumption → Total Grid Energy
+- Solar production → Total Estimated PV Production
+
+---
+
+## Calibration diagnostics
+
+The estimated PV entities expose diagnostic attributes including:
+
+- allocation_coefficient
+- used_calibration_samples
+- skipped_zero_grid_samples
+- coefficient_of_variation
+- minimum_coefficient
+- maximum_coefficient
+- standard_deviation
+- last_calibration
+
+---
+
 ## Planned features
 
-- Historical consumption sensors
-- Consumption graphs
-- Additional utility meters
+- Water meter support
+- Historical charts and statistics
 - Instant power (if provided by SmartEV)
-- Diagnostic entities
+- Additional SmartEV devices
+- HACS official repository
 
 ---
 
 ## Project structure
 
 ```text
-custom_components/
-└── smartev/
-    ├── translations/
-    ├── __init__.py
-    ├── client.py
-    ├── config_flow.py
-    ├── coordinator.py
-    ├── sensor.py
-    └── manifest.json
-
-docs/
-└── logo.png
+.
+├── .github/
+├── captures/
+├── custom_components/
+│   └── smartev/
+├── docs/
+├── tools/
+├── CHANGELOG.md
+├── hacs.json
+├── LICENSE
+└── README.md
 ```
 
 ---
 
 ## Requirements
 
-No additional Python packages need to be installed manually.
+No additional Python packages are required.
 
-The integration uses only dependencies managed by Home Assistant through `manifest.json`.
+All dependencies are managed automatically by Home Assistant through the integration's `manifest.json`.
 
 ---
 
@@ -193,11 +235,9 @@ See the LICENSE file for details.
 
 SmartEV Home Assistant Integration propojuje Home Assistant s cloudovou platformou SmartEV a načítá údaje z podporovaných měřidel.
 
-Integrace aktuálně podporuje elektroměry a je připravena na budoucí rozšíření o další zařízení SmartEV, například vodoměry.
+Integrace aktuálně podporuje elektroměry a je připravena na budoucí rozšíření o další zařízení SmartEV, včetně vodoměrů.
 
 ---
-
-## Funkce
 
 ## Funkce
 
@@ -215,6 +255,10 @@ Integrace aktuálně podporuje elektroměry a je připravena na budoucí rozší
 - Výroba z fotovoltaiky za aktuální měsíc
 - Dnešní odběr elektřiny ze sítě
 - Odběr elektřiny ze sítě za aktuální měsíc
+- Automatická kalibrace koeficientu přidělení výroby FVE
+- Odhadovaná výroba FVE pro byt
+- Kumulativní odhadovaná výroba FVE pro energetický dashboard Home Assistant
+- Kumulativní odběr elektřiny ze sítě pro energetický dashboard Home Assistant
 
 ---
 
@@ -265,6 +309,8 @@ config/
 
 Restartujte Home Assistant.
 
+---
+
 ## Konfigurace
 
 1. Otevřete **Nastavení → Zařízení a služby**
@@ -276,10 +322,10 @@ Restartujte Home Assistant.
 
 Integrace automaticky vyhledá všechny byty dostupné pro přihlášený účet SmartEV.
 
-- Pokud je nalezen jeden byt, vybere jej automaticky.
-- Pokud je nalezeno více bytů, Home Assistant nabídne jejich výběr.
+- Pokud je nalezen právě jeden byt, bude vybrán automaticky.
+- Pokud je nalezeno více bytů, Home Assistant umožní vybrat byt, který chcete přidat.
 - ID bytu již není potřeba zadávat ručně.
-- Existující konfigurace se migruje automaticky.
+- Existující konfigurace se migrují automaticky.
 
 Po dokončení konfigurace budou automaticky vytvořeny všechny podporované entity.
 
@@ -287,7 +333,7 @@ Po dokončení konfigurace budou automaticky vytvořeny všechny podporované en
 
 ## Aktuální entity
 
-Integrace automaticky vytváří entity pro podporovaná měřidla SmartEV.
+Integrace aktuálně vytváří následující senzory:
 
 - Celková energie
 - Roční spotřeba
@@ -297,43 +343,73 @@ Integrace automaticky vytváří entity pro podporovaná měřidla SmartEV.
 - Výroba z fotovoltaiky za aktuální měsíc
 - Dnešní odběr elektřiny ze sítě
 - Odběr elektřiny ze sítě za aktuální měsíc
+- Odhadovaná výroba FVE
+- Celková odhadovaná výroba FVE
+- Celková energie ze sítě
 - Čas posledního odečtu (diagnostika)
 
-Seznam entit se bude rozšiřovat spolu s podporou dalších funkcí platformy.
+Seznam entit se bude rozšiřovat spolu s podporou dalších funkcí platformy SmartEV.
 
-SmartEV zveřejňuje denní výrobu FVE se zpožděním jednoho dne. Senzor Poslední
-denní výroba FVE proto zobrazuje hodnotu za nejnovější dokončený kalendářní den
+SmartEV zveřejňuje denní výrobu FVE se zpožděním jednoho dne. Senzor **Poslední denní výroba FVE** proto zobrazuje hodnotu za nejnovější dokončený kalendářní den a ignoruje dnešní zástupný řádek. Atribut `production_date` určuje, ke kterému dni zobrazená hodnota patří.
 
-a ignoruje dnešní zástupný řádek. Atribut `production_date` určuje vykázaný den.
+---
+
+## Energetický dashboard Home Assistant
+
+Bytové účty neposkytují prostřednictvím rozhraní SmartEV API kumulativní údaje o výrobě z fotovoltaiky.
+
+Pro zajištění kompatibility s energetickým dashboardem Home Assistant integrace automaticky vypočítá stabilní koeficient přidělení výroby FVE z historických dat SmartEV a na jeho základě odhaduje průběžnou výrobu FVE bytu z výrobního elektroměru JOM.
+
+Kalibrace probíhá plně automaticky a nevyžaduje žádnou konfiguraci uživatelem.
+
+Dny s nulovým odběrem elektřiny ze sítě jsou z kalibrace vyloučeny, protože by zkreslovaly vypočtený koeficient přidělení výroby.
+
+Pro energetický dashboard Home Assistant nastavte:
+
+- Spotřeba ze sítě → **Celková energie ze sítě**
+- Výroba ze solární elektrárny → **Celková odhadovaná výroba FVE**
+
+---
+
+## Diagnostika kalibrace
+
+Entity odhadované výroby FVE poskytují diagnostické atributy, například:
+
+- `allocation_coefficient`
+- `used_calibration_samples`
+- `skipped_zero_grid_samples`
+- `coefficient_of_variation`
+- `minimum_coefficient`
+- `maximum_coefficient`
+- `standard_deviation`
+- `last_calibration`
 
 ---
 
 ## Plánované funkce
 
-- Historické senzory spotřeby
-- Grafy spotřeby
-- Další měřidla
+- Podpora vodoměrů
+- Historické grafy a statistiky
 - Okamžitý výkon (pokud jej SmartEV zpřístupní)
-- Diagnostické entity
-- Podpora HACS
+- Podpora dalších zařízení SmartEV
+- Zařazení do oficiálního repozitáře HACS
 
 ---
 
 ## Struktura projektu
 
 ```text
-custom_components/
-└── smartev/
-    ├── translations/
-    ├── __init__.py
-    ├── client.py
-    ├── config_flow.py
-    ├── coordinator.py
-    ├── sensor.py
-    └── manifest.json
-
-docs/
-└── logo.png
+.
+├── .github/
+├── captures/
+├── custom_components/
+│   └── smartev/
+├── docs/
+├── tools/
+├── CHANGELOG.md
+├── hacs.json
+├── LICENSE
+└── README.md
 ```
 
 ---
@@ -342,12 +418,14 @@ docs/
 
 Nejsou vyžadovány žádné další Python balíčky.
 
-Integrace používá pouze závislosti spravované Home Assistantem prostřednictvím souboru `manifest.json`.
+Všechny závislosti jsou spravovány automaticky Home Assistantem prostřednictvím souboru `manifest.json` integrace.
 
 ---
 
 ## Licence
 
-MIT licence.
+Licence MIT.
 
 Podrobnosti naleznete v souboru LICENSE.
+
+---

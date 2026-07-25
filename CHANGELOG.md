@@ -2,6 +2,34 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.7.0] - 2026-07-25
+
+### Added
+
+- Added estimated apartment PV production based on automatic calibration against the JOM PV meter.
+- Added cumulative estimated PV production sensor compatible with the Home Assistant Energy Dashboard.
+- Added cumulative total grid energy sensor compatible with the Home Assistant Energy Dashboard.
+- Added automatic calibration diagnostics, including:
+  - allocation coefficient
+  - calibration sample count
+  - skipped zero-grid sample count
+  - coefficient of variation
+  - calibration statistics
+
+### Changed
+
+- Introduced automatic PV allocation coefficient calibration using historical SmartEV data.
+- Excluded zero-grid days from coefficient calibration because they distort apartment allocation calculations.
+- Shared the daily cumulative counter implementation between estimated PV production and cumulative grid energy.
+- Improved Energy Dashboard integration for apartment accounts by providing cumulative production and grid import sensors.
+- Preserved cumulative counters across Home Assistant restarts and midnight rollovers.
+
+### Fixed
+
+- Prevented calibration drift caused by days with zero grid import.
+- Prevented cumulative counters from decreasing after temporary missing data or SmartEV corrections.
+- Prevented duplicate daily accumulation after Home Assistant restarts.
+
 ## [0.6.1] - 2026-07-22
 
 ### Added
