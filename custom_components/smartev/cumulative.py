@@ -149,3 +149,122 @@ class DailyCumulativeEnergyCounter:
         ):
             return None
         return float(value)
+
+
+class DifferenceCumulativeEnergyCounter:
+    """Build a stable cumulative counter from two cumulative source registers."""
+
+    def __init__(self, state: dict[str, Any]) -> None:
+        self._state = state
+
+    @staticmethod
+    def empty_state() -> dict[str, Any]:
+        """Return initial persistent state."""
+        return {
+            "mode": "difference",
+            "offset": None,
+            "total": None,
+            "last_difference": None,
+            "last_consumption": None,
+            "last_allocation": None,
+            "last_rebase": None,
+        }
+
+    def update(
+        self,
+        consumption_total: Any,
+        allocation_total: Any,
+        *,
+        initial_total: Any = None,
+        now: datetime | None = None,
+    ) -> float | None:
+        """Update from consumption minus allocation cumulative registers."""
+        consumption = self._finite_number(consumption_total)
+        allocation = self._finite_number(allocation_total)
+        if (
+            consumption is None
+            or consumption < 0
+            or allocation is None
+            or allocation < 0
+        ):
+            return self.total
+
+        difference = consumption - allocation
+        if difference < 0:
+            return self.total
+
+        offset = self._finite_number(self._state.get("offset"))
+        if offset is None:
+            previous_total = self._finite_number(initial_total)
+            if previous_total is None:
+                previous_total = difference
+            offset = previous_total - difference
+            self._state.update(
+                {
+                    "mode": "difference",
+                    "offset": offset,
+                    "total": previous_total,
+                    "last_difference": difference,
+                    "last_consumption": consumption,
+                    "last_allocation": allocation,
+                }
+            )
+            return previous_total
+
+        previous_difference = self._finite_number(
+            self._state.get("last_difference")
+        )
+        previous_total = self.total
+        candidate = difference + offset
+        if previous_difference is None or difference >= previous_difference:
+            total = max(previous_total or candidate, candidate)
+            self._state.update(
+                {
+                    "total": total,
+                    "last_difference": difference,
+                    "last_consumption": consumption,
+                    "last_allocation": allocation,
+                }
+            )
+            return total
+
+        total = previous_total or 0.0
+        self._state.update(
+            {
+                "offset": total - difference,
+                "last_difference": difference,
+                "last_consumption": consumption,
+                "last_allocation": allocation,
+                "last_rebase": now.isoformat() if now is not None else None,
+            }
+        )
+        return total
+
+    @property
+    def total(self) -> float | None:
+        """Return the last cumulative value."""
+        return self._finite_number(self._state.get("total"))
+
+    @property
+    def attributes(self) -> dict[str, Any]:
+        """Return source and migration diagnostics."""
+        return {
+            "consumption_total": self._finite_number(
+                self._state.get("last_consumption")
+            ),
+            "pv_allocation_total": self._finite_number(
+                self._state.get("last_allocation")
+            ),
+            "calculation_offset": self._finite_number(self._state.get("offset")),
+            "last_rebase": self._state.get("last_rebase"),
+        }
+
+    @staticmethod
+    def _finite_number(value: Any) -> float | None:
+        if (
+            isinstance(value, bool)
+            or not isinstance(value, (int, float))
+            or not math.isfinite(value)
+        ):
+            return None
+        return float(value)

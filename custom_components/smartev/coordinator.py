@@ -21,7 +21,13 @@ _LOGGER = logging.getLogger(__name__)
 class SmartEVCoordinator(DataUpdateCoordinator[dict]):
     """SmartEV data coordinator."""
 
-    def __init__(self, hass: HomeAssistant, client, entry_id: str) -> None:
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        client,
+        entry_id: str,
+        flat_id: int,
+    ) -> None:
         super().__init__(
             hass,
             logger=_LOGGER,
@@ -30,7 +36,11 @@ class SmartEVCoordinator(DataUpdateCoordinator[dict]):
         )
 
         self.client = client
-        self.pv_allocation = ApartmentPVAllocation(hass, entry_id)
+        self.pv_allocation = ApartmentPVAllocation(
+            hass,
+            entry_id,
+            flat_id,
+        )
 
     async def async_load(self) -> None:
         """Load persistent estimator state before the first refresh."""
@@ -66,8 +76,6 @@ class SmartEVCoordinator(DataUpdateCoordinator[dict]):
             data["currentMonthProduction"] = None
             data["latestDailyProduction"] = None
             data["latestDailyProductionDate"] = None
-            data["currentMonthGridEnergy"] = None
-            data["todayGridEnergy"] = None
             if current_month_production is not None:
                 data["currentMonthProduction"] = current_month_production["pv"][
                     "total"
@@ -80,12 +88,6 @@ class SmartEVCoordinator(DataUpdateCoordinator[dict]):
                         data["latestDailyProductionDate"],
                         data["latestDailyProduction"],
                     ) = latest_daily_production
-                data["currentMonthGridEnergy"] = current_month_production["grid"][
-                    "total"
-                ]
-                data["todayGridEnergy"] = current_month_production["grid"][
-                    "daily"
-                ].get(now.date().isoformat())
             data["dailyAggregation"] = current_month_data
             apartment_daily_pv = (
                 current_month_production["pv"]["calibration_daily"]
@@ -103,8 +105,33 @@ class SmartEVCoordinator(DataUpdateCoordinator[dict]):
                 apartment_daily_pv,
                 apartment_daily_grid,
             )
+            allocation = data["pvAllocation"]
+            estimated_today = (
+                allocation.get("estimated_today")
+                if allocation.get("today_available")
+                else None
+            )
+            estimated_total = (
+                allocation.get("estimated_total")
+                if allocation.get("available")
+                else None
+            )
+            data["todayGridEnergy"] = self._difference(
+                data["todayConsumption"], estimated_today
+            )
+            completed_month_pv = data["currentMonthProduction"]
+            live_month_pv = (
+                completed_month_pv + estimated_today
+                if completed_month_pv is not None and estimated_today is not None
+                else None
+            )
+            data["currentMonthGridEnergy"] = self._difference(
+                data["currentMonthConsumption"], live_month_pv
+            )
             data["gridCumulative"] = self.pv_allocation.update_grid(
-                now, data["todayGridEnergy"]
+                now,
+                data["meters"][0].get("value1"),
+                estimated_total,
             )
             return data
         except SmartEVAuthenticationError as err:
@@ -123,6 +150,14 @@ class SmartEVCoordinator(DataUpdateCoordinator[dict]):
     ) -> tuple[dict, dict, dict, dict | None, dict | None]:
         """Fetch all shared server aggregations without blocking HA."""
         data = self.client.get_flat_info()
+        live_flat = self.client.get_live_flat_info(data["buildingId"])
+        live_meter = live_flat["meters"][0]
+        data["meters"][0].update(
+            {
+                key: live_meter.get(key)
+                for key in ("id", "dt", "type", "value1", "value2", "unit")
+            }
+        )
         current_year_data = self.client.get_flat_info(year=year)
         current_month_data = self.client.get_flat_info(year=year, month=month)
         try:
@@ -234,3 +269,18 @@ class SmartEVCoordinator(DataUpdateCoordinator[dict]):
                 return None
 
         return None
+
+    @staticmethod
+    def _difference(
+        consumption: int | float | None,
+        pv_allocation: int | float | None,
+    ) -> float | None:
+        """Return a non-negative consumption-minus-allocation value."""
+        if (
+            isinstance(consumption, bool)
+            or not isinstance(consumption, (int, float))
+            or isinstance(pv_allocation, bool)
+            or not isinstance(pv_allocation, (int, float))
+        ):
+            return None
+        return max(0.0, float(consumption) - float(pv_allocation))

@@ -25,7 +25,10 @@ from .const import (
     PV_ALLOCATION_SIGNIFICANT_CHANGE,
     PV_ALLOCATION_ZERO_GRID_IMPORT,
 )
-from .cumulative import DailyCumulativeEnergyCounter
+from .cumulative import (
+    DailyCumulativeEnergyCounter,
+    DifferenceCumulativeEnergyCounter,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -79,9 +82,21 @@ def calculate_statistics(coefficients: list[float]) -> CalibrationStatistics | N
 class ApartmentPVAllocation:
     """Persist calibration and build a monotonic apartment PV estimate."""
 
-    def __init__(self, hass: HomeAssistant, entry_id: str) -> None:
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        entry_id: str,
+        flat_id: int,
+    ) -> None:
         self._store: Store[dict[str, Any]] = Store(
-            hass, _STORAGE_VERSION, f"{DOMAIN}.pv_allocation_{entry_id}"
+            hass,
+            _STORAGE_VERSION,
+            f"{DOMAIN}.pv_allocation_flat_{flat_id}",
+        )
+        self._legacy_store: Store[dict[str, Any]] = Store(
+            hass,
+            _STORAGE_VERSION,
+            f"{DOMAIN}.pv_allocation_{entry_id}",
         )
         self._state: dict[str, Any] = self._empty_state()
 
@@ -95,6 +110,8 @@ class ApartmentPVAllocation:
             "maximum": None,
             "standard_deviation": None,
             "coefficient_of_variation": None,
+            "calibration_stable": False,
+            "stable": False,
             "unstable_logged": False,
             "zero_grid_skipped": [],
             "history": {},
@@ -111,10 +128,24 @@ class ApartmentPVAllocation:
         """Load persisted calibration and counter state."""
         stored = await self._store.async_load()
         if not isinstance(stored, dict):
+            stored = await self._legacy_store.async_load()
+            if isinstance(stored, dict):
+                await self._store.async_save(stored)
+                _LOGGER.info(
+                    "Migrated SmartEV apartment PV allocation state to "
+                    "stable apartment storage"
+                )
+        if not isinstance(stored, dict):
             return
         self._state.update(stored)
         if not isinstance(self._state.get("history"), dict):
             self._state["history"] = {}
+        coefficient = self._finite_number(self._state.get("coefficient"))
+        if coefficient is not None and coefficient >= 0:
+            # A stored coefficient is the last accepted stable calibration.
+            # Older state may contain stable=False from a later candidate
+            # window; that must not disable the accepted coefficient.
+            self._state["stable"] = True
         counters = self._state.setdefault("cumulative_counters", {})
         if not isinstance(counters, dict):
             counters = {}
@@ -154,7 +185,7 @@ class ApartmentPVAllocation:
         """Update calibration and estimates from one coordinator refresh."""
         today = now.date().isoformat()
         if jom_data is None:
-            return self._result(False)
+            return self._result(today)
 
         register = jom_data.get("register")
         daily_jom = jom_data.get("daily")
@@ -164,12 +195,9 @@ class ApartmentPVAllocation:
             or not math.isfinite(register)
             or not isinstance(daily_jom, dict)
         ):
-            return self._result(False)
+            return self._result(today)
 
-        calibration_available = (
-            apartment_daily_pv is not None and apartment_daily_grid is not None
-        )
-        if calibration_available:
+        if apartment_daily_pv is not None and apartment_daily_grid is not None:
             self._calibrate(
                 now,
                 daily_jom,
@@ -178,18 +206,17 @@ class ApartmentPVAllocation:
             )
 
         coefficient = self._finite_number(self._state.get("coefficient"))
-        stable = coefficient is not None and bool(self._state.get("stable"))
-        if not stable:
+        if coefficient is None:
             self._state["last_jom_register"] = register
             self._state["last_jom_daily"] = self._finite_number(
                 daily_jom.get(today)
             )
             self._schedule_save()
-            return self._result(False)
+            return self._result(today)
 
         self._update_estimate(now, today, register, daily_jom, coefficient)
         self._schedule_save()
-        return self._result(True)
+        return self._result(today)
 
     def _calibrate(
         self,
@@ -222,16 +249,7 @@ class ApartmentPVAllocation:
             ):
                 continue
             if grid_import < PV_ALLOCATION_ZERO_GRID_IMPORT:
-                if production_date not in zero_grid_skipped:
-                    _LOGGER.debug(
-                        "Skipping calibration sample:\n"
-                        "%s\n"
-                        "grid_import = %.3f kWh\n"
-                        "reason = zero grid import",
-                        production_date,
-                        grid_import,
-                    )
-                    zero_grid_skipped.add(production_date)
+                zero_grid_skipped.add(production_date)
                 if production_date in history:
                     history.pop(production_date)
                     history_changed = True
@@ -309,7 +327,7 @@ class ApartmentPVAllocation:
                 "maximum": stats.maximum,
                 "standard_deviation": stats.standard_deviation,
                 "coefficient_of_variation": stats.coefficient_of_variation,
-                "stable": stats.stable,
+                "calibration_stable": stats.stable,
             }
         )
         if not stats.stable:
@@ -320,7 +338,7 @@ class ApartmentPVAllocation:
                 _LOGGER.warning(
                     "Apartment PV allocation coefficients are not stable "
                     "(samples=%s, min=%.6f, max=%.6f, standard_deviation=%.6f); "
-                    "estimation is disabled",
+                    "the last accepted coefficient remains active",
                     stats.sample_count,
                     stats.minimum,
                     stats.maximum,
@@ -342,6 +360,7 @@ class ApartmentPVAllocation:
                 )
 
         self._state["coefficient"] = weighted_coefficient
+        self._state["stable"] = True
         if history_changed or self._state.get("calibration_date") is None:
             self._state["calibration_date"] = now.isoformat()
 
@@ -380,38 +399,64 @@ class ApartmentPVAllocation:
         self._state["last_jom_register"] = register
         self._state["last_jom_daily"] = current_daily
 
-    def update_grid(self, now: datetime, today_grid_energy: Any) -> dict[str, Any]:
-        """Update cumulative imported grid energy from the live daily value."""
+    def update_grid(
+        self,
+        now: datetime,
+        consumption_total: Any,
+        pv_allocation_total: Any,
+    ) -> dict[str, Any]:
+        """Update cumulative grid import from consumption minus PV allocation."""
         counters = self._state.setdefault("cumulative_counters", {})
-        counter_state = counters.setdefault(
-            "grid", DailyCumulativeEnergyCounter.empty_state()
+        counter_state = counters.get("grid")
+        legacy_total = None
+        if (
+            not isinstance(counter_state, dict)
+            or counter_state.get("mode") != "difference"
+        ):
+            if isinstance(counter_state, dict):
+                legacy_total = self._finite_number(counter_state.get("total"))
+            counter_state = DifferenceCumulativeEnergyCounter.empty_state()
+            counters["grid"] = counter_state
+        counter = DifferenceCumulativeEnergyCounter(counter_state)
+        total = counter.update(
+            consumption_total,
+            pv_allocation_total,
+            initial_total=legacy_total,
+            now=now,
         )
-        counter = DailyCumulativeEnergyCounter(counter_state)
-        total = counter.update(now, today_grid_energy)
         self._schedule_save()
+        consumption = self._finite_number(consumption_total)
+        allocation = self._finite_number(pv_allocation_total)
         return {
-            "available": self._finite_number(today_grid_energy) is not None,
+            "available": consumption is not None and allocation is not None,
             "total": total,
-            "today_grid_energy": self._finite_number(today_grid_energy),
             **counter.attributes,
         }
 
-    def _result(self, available: bool) -> dict[str, Any]:
+    def _result(self, today: str) -> dict[str, Any]:
+        """Return accepted cached values even if the latest input is missing."""
+        coefficient = self._finite_number(self._state.get("coefficient"))
+        estimated_today = self._finite_number(self._state.get("estimated_today"))
+        estimated_total = self._finite_number(self._state.get("estimated_total"))
+        total_available = coefficient is not None and estimated_total is not None
+        today_available = (
+            total_available
+            and estimated_today is not None
+            and self._state.get("estimate_date") == today
+        )
         return {
-            "available": available,
-            "estimated_today": (
-                self._state.get("estimated_today") if available else None
-            ),
-            "estimated_total": (
-                self._state.get("estimated_total") if available else None
-            ),
-            "allocation_coefficient": self._state.get("coefficient"),
+            "available": total_available,
+            "today_available": today_available,
+            "estimated_today": estimated_today,
+            "estimated_total": estimated_total,
+            "allocation_coefficient": coefficient,
             "sample_days": self._state.get("sample_count", 0),
             "used_calibration_samples": self._state.get("sample_count", 0),
             "skipped_zero_grid_samples": len(
                 self._state.get("zero_grid_skipped") or []
             ),
             "last_calibration": self._state.get("calibration_date"),
+            "calibration_stable": self._state.get("calibration_stable"),
             "minimum_coefficient": self._state.get("minimum"),
             "maximum_coefficient": self._state.get("maximum"),
             "standard_deviation": self._state.get("standard_deviation"),

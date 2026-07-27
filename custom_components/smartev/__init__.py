@@ -76,7 +76,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 f"Unable to connect to SmartEV: {err}"
             ) from err
 
-        coordinator = SmartEVCoordinator(hass, client, entry.entry_id)
+        coordinator = SmartEVCoordinator(
+            hass,
+            client,
+            entry.entry_id,
+            entry.data[CONF_FLAT_ID],
+        )
         await coordinator.async_load()
         await coordinator.async_config_entry_first_refresh()
 

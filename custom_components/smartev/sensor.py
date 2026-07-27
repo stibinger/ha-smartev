@@ -228,9 +228,9 @@ class SmartEVEstimatedDailyProductionSensor(SmartEVPeriodProductionSensor):
 
     @property
     def available(self) -> bool:
-        """Return whether automatic calibration is valid."""
+        """Return whether today's allocation estimate is current."""
         allocation = self.coordinator.data.get("pvAllocation") or {}
-        return super().available and bool(allocation.get("available"))
+        return super().available and bool(allocation.get("today_available"))
 
     @property
     def native_value(self) -> int | float | None:
@@ -250,6 +250,7 @@ class SmartEVEstimatedDailyProductionSensor(SmartEVPeriodProductionSensor):
                 "used_calibration_samples",
                 "skipped_zero_grid_samples",
                 "last_calibration",
+                "calibration_stable",
                 "minimum_coefficient",
                 "maximum_coefficient",
                 "standard_deviation",
@@ -272,10 +273,19 @@ class SmartEVEstimatedProductionTotalSensor(SmartEVEstimatedDailyProductionSenso
         self._attr_translation_key = "estimated_pv_energy_total"
         self._attr_unique_id = f"meter_{self._meter_id}_estimated_pv_energy_total"
 
-class SmartEVPeriodGridEnergySensor(SmartEVPeriodConsumptionSensor):
-    """SmartEV server-provided period grid energy."""
+    @property
+    def available(self) -> bool:
+        """Return whether a valid cumulative allocation estimate exists."""
+        allocation = self.coordinator.data.get("pvAllocation") or {}
+        return (
+            SmartEVPeriodConsumptionSensor.available.fget(self)
+            and bool(allocation.get("available"))
+        )
 
-    _attr_state_class = SensorStateClass.TOTAL_INCREASING
+class SmartEVPeriodGridEnergySensor(SmartEVPeriodConsumptionSensor):
+    """Grid energy derived from consumption minus PV allocation."""
+
+    _attr_state_class = SensorStateClass.TOTAL
     _attr_icon = "mdi:transmission-tower"
 
 
@@ -294,7 +304,7 @@ class SmartEVTotalGridEnergySensor(SmartEVBaseSensor):
 
     @property
     def available(self) -> bool:
-        """Return whether the current daily grid value is available."""
+        """Return whether both cumulative inputs are available."""
         cumulative = self.coordinator.data.get("gridCumulative") or {}
         return super().available and bool(cumulative.get("available"))
 
@@ -306,14 +316,15 @@ class SmartEVTotalGridEnergySensor(SmartEVBaseSensor):
 
     @property
     def extra_state_attributes(self) -> dict:
-        """Expose concise cumulative-counter diagnostics."""
+        """Expose the cumulative inputs and continuity offset."""
         cumulative = self.coordinator.data.get("gridCumulative") or {}
         return {
             key: cumulative.get(key)
             for key in (
-                "today_grid_energy",
-                "anchor_value",
-                "last_rollover",
+                "consumption_total",
+                "pv_allocation_total",
+                "calculation_offset",
+                "last_rebase",
             )
             if cumulative.get(key) is not None
         }

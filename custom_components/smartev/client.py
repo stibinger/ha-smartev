@@ -98,6 +98,60 @@ def _validate_flat_info(data: object) -> dict:
     return data
 
 
+def _validate_live_flat_info(data: object, flat_id: int) -> dict:
+    """Validate and return one flat from a building live-meter response."""
+    if not isinstance(data, dict) or not isinstance(data.get("flats"), list):
+        raise SmartEVResponseError(
+            "SmartEV live building meters response has an invalid structure."
+        )
+    matches = [
+        flat
+        for flat in data["flats"]
+        if isinstance(flat, dict) and flat.get("id") == flat_id
+    ]
+    if len(matches) != 1:
+        raise SmartEVResponseError(
+            "SmartEV live building meters response does not contain exactly "
+            "one configured apartment."
+        )
+    flat = matches[0]
+    meters = flat.get("meters")
+    if not isinstance(meters, list) or len(meters) != 1:
+        raise SmartEVResponseError(
+            "SmartEV live apartment response must contain exactly one meter."
+        )
+    meter = meters[0]
+    if not isinstance(meter, dict) or meter.get("id") is None:
+        raise SmartEVResponseError(
+            "SmartEV live apartment meter has an invalid identity."
+        )
+    value = meter.get("value1")
+    if (
+        isinstance(value, bool)
+        or not isinstance(value, (int, float))
+        or not math.isfinite(value)
+    ):
+        raise SmartEVResponseError(
+            "SmartEV live apartment meter field 'value1' must be finite."
+        )
+    timestamp = meter.get("dt")
+    if (
+        isinstance(timestamp, bool)
+        or not isinstance(timestamp, (int, float))
+        or not math.isfinite(timestamp)
+    ):
+        raise SmartEVResponseError(
+            "SmartEV live apartment meter field 'dt' must be finite."
+        )
+    try:
+        datetime.fromtimestamp(timestamp, UTC)
+    except (OSError, OverflowError, ValueError) as err:
+        raise SmartEVResponseError(
+            "SmartEV live apartment meter timestamp is outside the supported range."
+        ) from err
+    return flat
+
+
 def _parse_production_csv(content: bytes) -> dict:
     """Parse an apartment PV production report CSV response."""
     try:
@@ -397,7 +451,9 @@ class SmartEVClient:
                         continue
                     building_id = building.get("id")
                     if isinstance(building_id, int) and not isinstance(building_id, bool):
-                        buildings[building_id] = str(building.get("name") or building_id)
+                        buildings[building_id] = str(
+                            building.get("name") or building_id
+                        )
 
         apartments: dict[int, dict] = {}
         for building_id, building_name in buildings.items():
@@ -444,3 +500,12 @@ class SmartEVClient:
             d=day,
         )
         return _validate_flat_info(data)
+
+    def get_live_flat_info(self, building_id: int) -> dict:
+        """Return the configured apartment's live cumulative meter response."""
+        if self._flat_id is None:
+            raise ValueError("flat_id is required for get_live_flat_info().")
+        data = self._get_json(
+            "/data/buildingFlatsMeters.php", buildingId=building_id
+        )
+        return _validate_live_flat_info(data, self._flat_id)

@@ -39,7 +39,7 @@ The integration currently supports electricity meters and has been designed for 
 - DataUpdateCoordinator-based updates
 - English and Czech localization
 - Compatible with the Home Assistant Energy Dashboard
-- Current electricity meter reading
+- Total energy
 - Daily, monthly and yearly electricity consumption
 - Latest daily PV production
 - Current month photovoltaic (PV) production
@@ -121,7 +121,7 @@ After setup, all supported entities are created automatically.
 
 ---
 
-## Current entities
+## Entities
 
 The integration currently creates sensors for:
 
@@ -160,13 +160,33 @@ meter.
 The calibration process is fully automatic and requires no user
 configuration.
 
-Days with zero grid import are excluded from calibration because they would
-otherwise distort the calculated apartment allocation coefficient.
+Allocation coefficients and cumulative counter continuity are stored by the
+stable SmartEV apartment ID. Existing config-entry-based storage is migrated
+automatically on the first startup after upgrading.
+
+The live cumulative apartment register is the primary consumption source.
+Grid import is derived from cumulative apartment consumption minus cumulative
+apartment PV allocation. SmartEV's CSV grid column is not used for live or
+cumulative grid entities. It is used only to reject zero-grid report days from
+PV allocation calibration, because SmartEV does not apply the normal allocation
+ratio on those days.
 
 For the Home Assistant Energy Dashboard configure:
 
 - Grid consumption → Total Grid Energy
 - Solar production → Total Estimated PV Production
+
+### Migration note
+
+Users upgrading from older integration versions may already have Energy
+Dashboard statistics created before persistent counter continuity was migrated
+to the stable SmartEV apartment ID.
+
+If the first cumulative grid reading after migration is interpreted as energy
+consumed during a single statistics interval, open **Developer Tools →
+Statistics**, select the first affected interval and set its interval change to
+**0 kWh**. This corrects the accumulated Energy Dashboard statistics without
+changing the live cumulative sensor state.
 
 ---
 
@@ -188,10 +208,8 @@ The estimated PV entities expose diagnostic attributes including:
 ## Planned features
 
 - Water meter support
-- Historical charts and statistics
-- Instant power (if provided by SmartEV)
-- Additional SmartEV devices
-- HACS official repository
+- Support for additional SmartEV devices
+- Publication in the official HACS repository
 
 ---
 
@@ -231,34 +249,34 @@ See the LICENSE file for details.
 
 # 🇨🇿 Čeština
 
-## O projektu
+## O integraci
 
-SmartEV Home Assistant Integration propojuje Home Assistant s cloudovou platformou SmartEV a načítá údaje z podporovaných měřidel.
+Integrace SmartEV pro Home Assistant propojuje Home Assistant s cloudovou platformou SmartEV a načítá data z měřidel energií ze služby SmartEV.
 
-Integrace aktuálně podporuje elektroměry a je připravena na budoucí rozšíření o další zařízení SmartEV, včetně vodoměrů.
+Integrace v současnosti podporuje elektroměry a je navržena pro budoucí rozšíření o další zařízení SmartEV, včetně vodoměrů.
 
 ---
 
 ## Funkce
 
-- Bezpečné ověřování
+- Bezpečné přihlášení
 - Automatická správa relace
-- Podpora průvodce konfigurací (Config Flow)
-- Automatické vyhledání bytů
-- Automatická migrace stávajících konfigurací
+- Podpora Config Flow
+- Automatické zjištění bytů
+- Automatická migrace existujících konfigurací
 - Aktualizace založené na DataUpdateCoordinator
 - Lokalizace do češtiny a angličtiny
-- Kompatibilita s energetickým dashboardem Home Assistant
-- Aktuální stav elektroměru
+- Kompatibilita s Energy Dashboardem Home Assistantu
+- Celková spotřeba energie
 - Denní, měsíční a roční spotřeba elektřiny
 - Poslední denní výroba FVE
-- Výroba z fotovoltaiky za aktuální měsíc
-- Dnešní odběr elektřiny ze sítě
-- Odběr elektřiny ze sítě za aktuální měsíc
+- Výroba fotovoltaiky (FVE) za aktuální měsíc
+- Dnešní odběr energie ze sítě
+- Odběr energie ze sítě za aktuální měsíc
 - Automatická kalibrace koeficientu přidělení výroby FVE
 - Odhadovaná výroba FVE pro byt
-- Kumulativní odhadovaná výroba FVE pro energetický dashboard Home Assistant
-- Kumulativní odběr elektřiny ze sítě pro energetický dashboard Home Assistant
+- Celková odhadovaná výroba FVE pro Energy Dashboard Home Assistantu
+- Celkový odběr energie ze sítě pro Energy Dashboard Home Assistantu
 
 ---
 
@@ -266,40 +284,40 @@ Integrace aktuálně podporuje elektroměry a je připravena na budoucí rozší
 
 | Měřidlo | Stav |
 |----------|------|
-| ⚡ Elektroměr | ✅ Podporováno |
-| 🚰 Vodoměr | 🚧 Připravuje se |
+| ⚡ Elektřina | ✅ Podporováno |
+| 🚰 Voda | 🚧 Plánováno |
 
 ---
 
 ## Instalace
 
-### Možnost 1 – HACS (doporučeno)
+### Varianta 1 – HACS (doporučeno)
 
-Dokud není SmartEV zařazen do oficiálního repozitáře HACS, nainstalujte jej jako **vlastní repozitář (Custom Repository)**.
+Dokud nebude SmartEV zařazen do oficiálního repozitáře HACS, nainstalujte jej jako **Custom Repository**.
 
-1. Otevřete **HACS → Integrace**.
-2. Klikněte na **⋮ → Vlastní repozitáře (Custom repositories)**.
+1. Otevřete **HACS → Integrations**.
+2. Klikněte na **⋮ → Custom repositories**.
 3. Přidejte:
 
 ```text
-Repozitář:
+Repository:
 https://github.com/stibinger/ha-smartev
 
-Kategorie:
+Category:
 Integration
 ```
 
-4. Klikněte na **Přidat**.
+4. Klikněte na **Add**.
 5. Vyhledejte **SmartEV**.
-6. Klikněte na **Stáhnout**.
+6. Klikněte na **Download**.
 7. Restartujte Home Assistant.
 8. Přidejte integraci přes **Nastavení → Zařízení a služby**.
 
 ---
 
-### Možnost 2 – Ruční instalace
+### Varianta 2 – Ruční instalace
 
-Zkopírujte adresář `custom_components/smartev` do konfiguračního adresáře Home Assistant:
+Zkopírujte adresář `custom_components/smartev` do konfigurace Home Assistantu:
 
 ```text
 config/
@@ -317,80 +335,84 @@ Restartujte Home Assistant.
 2. Klikněte na **Přidat integraci**
 3. Vyhledejte **SmartEV**
 4. Zadejte:
-   - e-mail
-   - heslo
+   - E-mail
+   - Heslo
 
 Integrace automaticky vyhledá všechny byty dostupné pro přihlášený účet SmartEV.
 
-- Pokud je nalezen právě jeden byt, bude vybrán automaticky.
-- Pokud je nalezeno více bytů, Home Assistant umožní vybrat byt, který chcete přidat.
-- ID bytu již není potřeba zadávat ručně.
-- Existující konfigurace se migrují automaticky.
+- Pokud je dostupný právě jeden byt, bude vybrán automaticky.
+- Pokud je dostupných více bytů, Home Assistant umožní vybrat byt, který chcete přidat.
+- Identifikátor bytu již není nutné zadávat ručně.
+- Existující konfigurační záznamy jsou automaticky migrovány.
 
-Po dokončení konfigurace budou automaticky vytvořeny všechny podporované entity.
+Po dokončení nastavení jsou automaticky vytvořeny všechny podporované entity.
 
 ---
 
-## Aktuální entity
+## Entity
 
 Integrace aktuálně vytváří následující senzory:
 
-- Celková energie
+- Celková spotřeba energie
 - Roční spotřeba
 - Měsíční spotřeba
 - Dnešní spotřeba
 - Poslední denní výroba FVE
-- Výroba z fotovoltaiky za aktuální měsíc
-- Dnešní odběr elektřiny ze sítě
-- Odběr elektřiny ze sítě za aktuální měsíc
+- Výroba fotovoltaiky (FVE) za aktuální měsíc
+- Dnešní odběr energie ze sítě
+- Odběr energie ze sítě za aktuální měsíc
 - Odhadovaná výroba FVE
 - Celková odhadovaná výroba FVE
-- Celková energie ze sítě
-- Čas posledního odečtu (diagnostika)
+- Celkový odběr energie ze sítě
+- Poslední odečet elektroměru (diagnostický)
 
-Seznam entit se bude rozšiřovat spolu s podporou dalších funkcí platformy SmartEV.
-
-SmartEV zveřejňuje denní výrobu FVE se zpožděním jednoho dne. Senzor **Poslední denní výroba FVE** proto zobrazuje hodnotu za nejnovější dokončený kalendářní den a ignoruje dnešní zástupný řádek. Atribut `production_date` určuje, ke kterému dni zobrazená hodnota patří.
+SmartEV zveřejňuje denní výrobu FVE s jednodenním zpožděním. Senzor poslední denní výroby FVE proto zobrazuje hodnotu za poslední dokončený kalendářní den a ignoruje dnešní zástupný řádek. Atribut `production_date` určuje datum, ke kterému se zobrazená hodnota vztahuje.
 
 ---
 
-## Energetický dashboard Home Assistant
+## Energy Dashboard Home Assistantu
 
-Bytové účty neposkytují prostřednictvím rozhraní SmartEV API kumulativní údaje o výrobě z fotovoltaiky.
+Účty jednotlivých bytů neposkytují prostřednictvím rozhraní SmartEV API kumulativní výrobu fotovoltaiky.
 
-Pro zajištění kompatibility s energetickým dashboardem Home Assistant integrace automaticky vypočítá stabilní koeficient přidělení výroby FVE z historických dat SmartEV a na jeho základě odhaduje průběžnou výrobu FVE bytu z výrobního elektroměru JOM.
+Aby byla zajištěna kompatibilita s Energy Dashboardem, integrace automaticky vypočítává stabilní koeficient přidělení výroby FVE z historických dat SmartEV a z výroby fotovoltaického měřidla JOM odhaduje aktuální výrobu FVE pro daný byt.
 
-Kalibrace probíhá plně automaticky a nevyžaduje žádnou konfiguraci uživatelem.
+Proces kalibrace je plně automatický a nevyžaduje žádnou konfiguraci uživatelem.
 
-Dny s nulovým odběrem elektřiny ze sítě jsou z kalibrace vyloučeny, protože by zkreslovaly vypočtený koeficient přidělení výroby.
+Koeficient přidělení i kontinuita kumulativních čítačů jsou ukládány podle stabilního identifikátoru bytu SmartEV. Při prvním spuštění po aktualizaci jsou stávající data uložená podle identifikátoru konfigurační položky automaticky migrována.
 
-Pro energetický dashboard Home Assistant nastavte:
+Živý kumulativní stav bytového elektroměru je primárním zdrojem údajů o spotřebě. Odběr ze sítě je odvozen jako rozdíl mezi kumulativní spotřebou bytu a kumulativně přidělenou výrobou FVE. Sloupec odběru ze sítě v CSV reportech SmartEV se nepoužívá pro živé ani kumulativní entity odběru ze sítě. Používá se pouze k vyřazení dnů s nulovým odběrem při kalibraci přidělení výroby FVE, protože SmartEV v těchto dnech nepoužívá běžný přidělovací poměr.
 
-- Spotřeba ze sítě → **Celková energie ze sítě**
-- Výroba ze solární elektrárny → **Celková odhadovaná výroba FVE**
+Pro Energy Dashboard Home Assistantu nastavte:
+
+- Spotřeba ze sítě → Celkový odběr energie ze sítě
+- Výroba ze solárních panelů → Celková odhadovaná výroba FVE
+
+### Poznámka k migraci
+
+Uživatelé, kteří přecházejí ze starších verzí integrace, již mohou mít vytvořené statistiky Energy Dashboardu ještě před migrací ukládání kontinuity kumulativních čítačů na stabilní identifikátor bytu SmartEV.
+
+Pokud je první kumulativní odečet odběru ze sítě po migraci interpretován jako energie spotřebovaná během jednoho statistického intervalu, otevřete **Vývojářské nástroje → Statistiky**, vyberte první ovlivněný interval a nastavte jeho změnu na **0 kWh**. Tím dojde k opravě statistik Energy Dashboardu bez změny aktuální hodnoty kumulativního senzoru.
 
 ---
 
-## Diagnostika kalibrace
+## Diagnostické údaje kalibrace
 
-Entity odhadované výroby FVE poskytují diagnostické atributy, například:
+Entity odhadované výroby FVE zpřístupňují následující diagnostické atributy:
 
-- `allocation_coefficient`
-- `used_calibration_samples`
-- `skipped_zero_grid_samples`
-- `coefficient_of_variation`
-- `minimum_coefficient`
-- `maximum_coefficient`
-- `standard_deviation`
-- `last_calibration`
+- allocation_coefficient
+- used_calibration_samples
+- skipped_zero_grid_samples
+- coefficient_of_variation
+- minimum_coefficient
+- maximum_coefficient
+- standard_deviation
+- last_calibration
 
 ---
 
 ## Plánované funkce
 
 - Podpora vodoměrů
-- Historické grafy a statistiky
-- Okamžitý výkon (pokud jej SmartEV zpřístupní)
 - Podpora dalších zařízení SmartEV
 - Zařazení do oficiálního repozitáře HACS
 
@@ -414,11 +436,11 @@ Entity odhadované výroby FVE poskytují diagnostické atributy, například:
 
 ---
 
-## Závislosti
+## Požadavky
 
-Nejsou vyžadovány žádné další Python balíčky.
+Nejsou vyžadovány žádné další balíčky Pythonu.
 
-Všechny závislosti jsou spravovány automaticky Home Assistantem prostřednictvím souboru `manifest.json` integrace.
+Veškeré závislosti jsou spravovány automaticky Home Assistantem prostřednictvím souboru `manifest.json` integrace.
 
 ---
 

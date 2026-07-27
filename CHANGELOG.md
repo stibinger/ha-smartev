@@ -2,6 +2,33 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased
+
+### Changed
+
+- Made the live cumulative apartment register from `buildingFlatsMeters.php`
+  the primary consumption source.
+- Limited production CSV grid use to identifying invalid zero-grid PV
+  allocation samples; CSV grid values no longer drive any grid entity.
+- Derived today's, current-month, and cumulative grid import from apartment
+  consumption minus apartment PV allocation.
+- Preserved the cumulative grid entity's history across migration by anchoring
+  the new difference counter to its previously published value.
+
+### Fixed
+
+- Retained the last accepted PV allocation coefficient when a newer candidate
+  calibration window is incomplete or unstable.
+- Kept valid cached cumulative PV and grid values available when a refresh
+  cannot advance the current-day PV estimate.
+- Restored exclusion of zero-grid report days from PV calibration. Including
+  those days introduced allocation-ratio outliers, prevented a coefficient
+  from being accepted, and made all estimated PV and derived grid entities
+  unavailable.
+- Migrated PV allocation and cumulative counter storage from config-entry IDs
+  to stable SmartEV apartment IDs so removing and re-adding an entry does not
+  reset counter continuity.
+
 ## [0.7.0] - 2026-07-25
 
 ### Added
