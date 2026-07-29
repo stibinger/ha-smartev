@@ -164,12 +164,11 @@ Allocation coefficients and cumulative counter continuity are stored by the
 stable SmartEV apartment ID. Existing config-entry-based storage is migrated
 automatically on the first startup after upgrading.
 
-The live cumulative apartment register is the primary consumption source.
-Grid import is derived from cumulative apartment consumption minus cumulative
-apartment PV allocation. SmartEV's CSV grid column is not used for live or
-cumulative grid entities. It is used only to reject zero-grid report days from
-PV allocation calibration, because SmartEV does not apply the normal allocation
-ratio on those days.
+The SmartEV production report's apartment Grid column is authoritative for
+completed days and includes SmartEV's battery-aware accounting. The current
+unfinished day continues to use apartment consumption minus estimated PV until
+SmartEV publishes its official report value. Current-month and cumulative grid
+entities reconcile that estimate automatically when the completed day appears.
 
 For the Home Assistant Energy Dashboard configure:
 

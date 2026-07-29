@@ -283,10 +283,24 @@ class SmartEVEstimatedProductionTotalSensor(SmartEVEstimatedDailyProductionSenso
         )
 
 class SmartEVPeriodGridEnergySensor(SmartEVPeriodConsumptionSensor):
-    """Grid energy derived from consumption minus PV allocation."""
+    """Authoritative completed grid energy plus the current live estimate."""
 
     _attr_state_class = SensorStateClass.TOTAL
     _attr_icon = "mdi:transmission-tower"
+
+    @property
+    def extra_state_attributes(self) -> dict:
+        """Expose the source and latest authoritative reconciliation."""
+        accounting = self.coordinator.data.get("gridAccounting") or {}
+        return {
+            key: accounting.get(key)
+            for key in (
+                "today_source",
+                "last_official_date",
+                "last_reconciliation",
+            )
+            if accounting.get(key) is not None
+        }
 
 
 class SmartEVTotalGridEnergySensor(SmartEVBaseSensor):
@@ -316,15 +330,19 @@ class SmartEVTotalGridEnergySensor(SmartEVBaseSensor):
 
     @property
     def extra_state_attributes(self) -> dict:
-        """Expose the cumulative inputs and continuity offset."""
+        """Expose authoritative-accounting and continuity diagnostics."""
         cumulative = self.coordinator.data.get("gridCumulative") or {}
         return {
             key: cumulative.get(key)
             for key in (
-                "consumption_total",
-                "pv_allocation_total",
-                "calculation_offset",
-                "last_rebase",
+                "today_source",
+                "last_official_date",
+                "migration_baseline_offset",
+                "migration_reference_total",
+                "continuity_offset",
+                "last_reconciliation",
+                "official_completed_total",
+                "today_estimate",
             )
             if cumulative.get(key) is not None
         }

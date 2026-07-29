@@ -8,12 +8,12 @@ All notable changes to this project will be documented in this file.
 
 - Made the live cumulative apartment register from `buildingFlatsMeters.php`
   the primary consumption source.
-- Limited production CSV grid use to identifying invalid zero-grid PV
-  allocation samples; CSV grid values no longer drive any grid entity.
-- Derived today's, current-month, and cumulative grid import from apartment
-  consumption minus apartment PV allocation.
-- Preserved the cumulative grid entity's history across migration by anchoring
-  the new difference counter to its previously published value.
+- Made the production CSV's apartment `Grid` column authoritative for completed
+  days while retaining consumption-minus-estimated-PV only for the current day.
+- Built current-month and cumulative grid import from reconciled official days
+  plus the live current-day estimate.
+- Preserved Energy Dashboard history with an immutable migration baseline and a
+  separate runtime continuity offset for downward SmartEV corrections.
 
 ### Fixed
 

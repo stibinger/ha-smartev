@@ -27,7 +27,6 @@ from .const import (
 )
 from .cumulative import (
     DailyCumulativeEnergyCounter,
-    DifferenceCumulativeEnergyCounter,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -399,39 +398,15 @@ class ApartmentPVAllocation:
         self._state["last_jom_register"] = register
         self._state["last_jom_daily"] = current_daily
 
-    def update_grid(
-        self,
-        now: datetime,
-        consumption_total: Any,
-        pv_allocation_total: Any,
-    ) -> dict[str, Any]:
-        """Update cumulative grid import from consumption minus PV allocation."""
-        counters = self._state.setdefault("cumulative_counters", {})
-        counter_state = counters.get("grid")
-        legacy_total = None
-        if (
-            not isinstance(counter_state, dict)
-            or counter_state.get("mode") != "difference"
-        ):
-            if isinstance(counter_state, dict):
-                legacy_total = self._finite_number(counter_state.get("total"))
-            counter_state = DifferenceCumulativeEnergyCounter.empty_state()
-            counters["grid"] = counter_state
-        counter = DifferenceCumulativeEnergyCounter(counter_state)
-        total = counter.update(
-            consumption_total,
-            pv_allocation_total,
-            initial_total=legacy_total,
-            now=now,
-        )
-        self._schedule_save()
-        consumption = self._finite_number(consumption_total)
-        allocation = self._finite_number(pv_allocation_total)
-        return {
-            "available": consumption is not None and allocation is not None,
-            "total": total,
-            **counter.attributes,
-        }
+    def legacy_grid_total(self) -> float | None:
+        """Return the last grid total solely for one-time accounting migration."""
+        counters = self._state.get("cumulative_counters")
+        if not isinstance(counters, dict):
+            return None
+        grid = counters.get("grid")
+        if not isinstance(grid, dict):
+            return None
+        return self._finite_number(grid.get("total"))
 
     def _result(self, today: str) -> dict[str, Any]:
         """Return accepted cached values even if the latest input is missing."""

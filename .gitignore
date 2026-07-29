@@ -25,6 +25,7 @@ test_config.py
 
 # Test files
 test_*.py
+!tests/test_*.py
 
 # Development dependencies
 requirements.txt

@@ -12,6 +12,7 @@ from homeassistant.util import dt as dt_util
 
 from .allocation import ApartmentPVAllocation
 from .client import SmartEVAuthenticationError
+from .grid_accounting import ApartmentGridAccounting
 
 from .const import DOMAIN
 
@@ -41,14 +42,17 @@ class SmartEVCoordinator(DataUpdateCoordinator[dict]):
             entry_id,
             flat_id,
         )
+        self.grid_accounting = ApartmentGridAccounting(hass, flat_id)
 
     async def async_load(self) -> None:
         """Load persistent estimator state before the first refresh."""
         await self.pv_allocation.async_load()
+        await self.grid_accounting.async_load()
 
     async def async_shutdown(self) -> None:
         """Persist estimator state before unloading."""
         await self.pv_allocation.async_save()
+        await self.grid_accounting.async_save()
 
     async def _async_update_data(self):
         """Fetch data from SmartEV."""
@@ -111,28 +115,25 @@ class SmartEVCoordinator(DataUpdateCoordinator[dict]):
                 if allocation.get("today_available")
                 else None
             )
-            estimated_total = (
-                allocation.get("estimated_total")
-                if allocation.get("available")
-                else None
-            )
-            data["todayGridEnergy"] = self._difference(
+            today_grid_estimate = self._difference(
                 data["todayConsumption"], estimated_today
             )
-            completed_month_pv = data["currentMonthProduction"]
-            live_month_pv = (
-                completed_month_pv + estimated_today
-                if completed_month_pv is not None and estimated_today is not None
+            official_daily_grid = (
+                current_month_production["grid"]["accounting_daily"]
+                if current_month_production is not None
                 else None
             )
-            data["currentMonthGridEnergy"] = self._difference(
-                data["currentMonthConsumption"], live_month_pv
-            )
-            data["gridCumulative"] = self.pv_allocation.update_grid(
+            data["gridAccounting"] = self.grid_accounting.update(
                 now,
-                data["meters"][0].get("value1"),
-                estimated_total,
+                official_daily_grid,
+                today_grid_estimate,
+                legacy_total=self.pv_allocation.legacy_grid_total(),
             )
+            data["todayGridEnergy"] = data["gridAccounting"]["today"]
+            data["currentMonthGridEnergy"] = data["gridAccounting"][
+                "current_month"
+            ]
+            data["gridCumulative"] = data["gridAccounting"]
             return data
         except SmartEVAuthenticationError as err:
             raise ConfigEntryAuthFailed("SmartEV authentication failed") from err
@@ -185,12 +186,15 @@ class SmartEVCoordinator(DataUpdateCoordinator[dict]):
             calibration_daily_grid = dict(
                 current_month_production["grid"]["daily"]
             )
+            accounting_daily_grid = dict(
+                current_month_production["grid"]["daily"]
+            )
             latest_daily = self._latest_completed_daily_value(daily_pv, today)
 
             # At a month boundary, the newest delayed value can still be in
             # the previous month's report. Keep both days available for
             # calibration even after the first current-month row appears.
-            if today.day <= 2:
+            if today.day <= 7:
                 previous_year = year if month > 1 else year - 1
                 previous_month = month - 1 if month > 1 else 12
                 try:
@@ -216,6 +220,10 @@ class SmartEVCoordinator(DataUpdateCoordinator[dict]):
                         **previous_production["grid"]["daily"],
                         **calibration_daily_grid,
                     }
+                    accounting_daily_grid = {
+                        **previous_production["grid"]["daily"],
+                        **accounting_daily_grid,
+                    }
                 except (requests.RequestException, ValueError) as err:
                     _LOGGER.debug(
                         "Unable to update previous month's SmartEV production data: %s",
@@ -226,6 +234,9 @@ class SmartEVCoordinator(DataUpdateCoordinator[dict]):
             current_month_production["grid"][
                 "calibration_daily"
             ] = calibration_daily_grid
+            current_month_production["grid"][
+                "accounting_daily"
+            ] = accounting_daily_grid
         except (requests.RequestException, ValueError) as err:
             _LOGGER.debug("Unable to update optional SmartEV production data: %s", err)
             current_month_production = None
