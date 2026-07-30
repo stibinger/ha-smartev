@@ -154,7 +154,7 @@ class ApartmentGridAccountingTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(after_report["current_month"], 7.0)
         self.assertEqual(after_report["total"], 7.0)
 
-    async def test_lower_official_value_preserves_monotonicity(self):
+    async def test_lower_official_value_replaces_estimate_without_offset(self):
         self.update("2026-07-29T23:59:00", {}, 5.0)
         before = self.update("2026-07-30T08:00:00", {}, 1.0)
         after = self.update(
@@ -163,8 +163,32 @@ class ApartmentGridAccountingTest(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(before["total"], 6.0)
         self.assertEqual(after["total"], 6.0)
-        self.assertEqual(after["continuity_offset"], 2.0)
+        self.assertEqual(after["official_completed_total"], 3.0)
+        self.assertEqual(after["continuity_offset"], 0.0)
         self.assertEqual(after["current_month"], 4.0)
+
+        caught_up = self.update(
+            "2026-07-30T12:00:00", {"2026-07-29": 3.0}, 3.0
+        )
+        advanced = self.update(
+            "2026-07-30T13:00:00", {"2026-07-29": 3.0}, 4.0
+        )
+        self.assertEqual(caught_up["total"], 6.0)
+        self.assertEqual(caught_up["continuity_offset"], 0.0)
+        self.assertEqual(advanced["total"], 7.0)
+
+    async def test_downward_official_correction_uses_continuity_if_needed(self):
+        before = self.update(
+            "2026-07-29T12:00:00", {"2026-07-28": 5.0}, 1.0
+        )
+        corrected = self.update(
+            "2026-07-29T12:01:00", {"2026-07-28": 3.0}, 1.0
+        )
+
+        self.assertEqual(before["total"], 6.0)
+        self.assertEqual(corrected["official_completed_total"], 3.0)
+        self.assertEqual(corrected["total"], 6.0)
+        self.assertEqual(corrected["continuity_offset"], 2.0)
 
     async def test_official_correction_is_reconciled_once(self):
         self.update(
@@ -253,6 +277,62 @@ class ApartmentGridAccountingTest(unittest.IsolatedAsyncioTestCase):
             migrated["migration_baseline_offset"],
         )
         self.assertEqual(updated["total"], 101.0)
+
+    async def test_stale_continuity_migration_preserves_published_floor_once(self):
+        legacy_state = {
+            "mode": "authoritative_daily_grid",
+            "official_total": 90.0,
+            "recent_official": {"2026-07-28": 90.0},
+            "pending_estimates": {},
+            "estimate_date": "2026-07-28",
+            "today_estimate": None,
+            "migration_complete": True,
+            "migration_baseline_offset": 0.0,
+            "migration_reference_total": 90.0,
+            "continuity_offset": 8.938,
+            "published_total": 98.938,
+            "last_official_date": "2026-07-28",
+            "last_reconciliation": "2026-07-28T23:59:00+02:00",
+        }
+        self.store = FakeStore(legacy_state)
+        self.accounting = ApartmentGridAccounting(
+            None, 200, store=self.store
+        )
+        await self.accounting.async_load()
+
+        held = self.update(
+            "2026-07-29T08:00:00", {"2026-07-28": 90.0}, 1.0
+        )
+        caught_up = self.update(
+            "2026-07-29T16:00:00", {"2026-07-28": 90.0}, 8.938
+        )
+        advanced = self.update(
+            "2026-07-29T17:00:00", {"2026-07-28": 90.0}, 9.938
+        )
+
+        self.assertEqual(held["total"], 98.938)
+        self.assertEqual(caught_up["total"], 98.938)
+        self.assertEqual(advanced["total"], 99.938)
+        self.assertEqual(held["continuity_offset"], 0.0)
+        self.assertEqual(caught_up["continuity_offset"], 0.0)
+        self.assertEqual(advanced["continuity_offset"], 0.0)
+        self.assertEqual(self.store.stored["accounting_state_version"], 2)
+        self.assertEqual(self.store.stored["published_total"], 98.938)
+
+        # A legitimate post-migration official correction may establish new
+        # continuity. Reloading the versioned state must not clear it again.
+        corrected = self.update(
+            "2026-07-29T17:01:00", {"2026-07-28": 89.0}, 9.938
+        )
+        self.assertEqual(corrected["total"], 99.938)
+        self.assertEqual(corrected["continuity_offset"], 1.0)
+        self.store.flush()
+        await self.restart()
+        after_restart = self.update(
+            "2026-07-29T17:02:00", {"2026-07-28": 89.0}, 9.938
+        )
+        self.assertEqual(after_restart["total"], 99.938)
+        self.assertEqual(after_restart["continuity_offset"], 1.0)
 
 
 if __name__ == "__main__":

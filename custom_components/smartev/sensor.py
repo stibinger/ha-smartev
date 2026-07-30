@@ -4,6 +4,7 @@
 """SmartEV sensor platform."""
 
 from datetime import UTC, datetime
+import logging
 
 from homeassistant.components.sensor import (
     SensorDeviceClass,
@@ -19,6 +20,8 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import CONF_FLAT_ID, DOMAIN
 from .coordinator import SmartEVCoordinator
+
+_LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(
@@ -326,7 +329,39 @@ class SmartEVTotalGridEnergySensor(SmartEVBaseSensor):
     def native_value(self) -> int | float | None:
         """Return cumulative imported grid energy."""
         cumulative = self.coordinator.data.get("gridCumulative") or {}
-        return cumulative.get("total")
+        coordinator_value = cumulative.get("total")
+        _LOGGER.debug(
+            "SmartEV grid publication pipeline: stage=sensor_native_value "
+            "entity_id=%s coordinator_value=%s native_value=%s",
+            self.entity_id,
+            coordinator_value,
+            coordinator_value,
+        )
+        return coordinator_value
+
+    def async_write_ha_state(self) -> None:
+        """Log the cumulative value immediately before and after HA writes it."""
+        native_value = self.native_value
+        _LOGGER.debug(
+            "SmartEV grid publication pipeline: stage=before_ha_state_write "
+            "entity_id=%s native_value=%s",
+            self.entity_id,
+            native_value,
+        )
+        super().async_write_ha_state()
+        written_state = (
+            self.hass.states.get(self.entity_id)
+            if self.hass is not None and self.entity_id is not None
+            else None
+        )
+        _LOGGER.debug(
+            "SmartEV grid publication pipeline: stage=after_ha_state_write "
+            "entity_id=%s native_value=%s final_state=%s final_attributes=%s",
+            self.entity_id,
+            native_value,
+            written_state.state if written_state is not None else None,
+            written_state.attributes if written_state is not None else None,
+        )
 
     @property
     def extra_state_attributes(self) -> dict:

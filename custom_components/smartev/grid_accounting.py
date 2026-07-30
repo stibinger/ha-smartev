@@ -18,6 +18,7 @@ from .const import DOMAIN
 _LOGGER = logging.getLogger(__name__)
 
 _STORAGE_VERSION = 1
+_ACCOUNTING_STATE_VERSION = 2
 _SAVE_DELAY = 300
 _RECENT_DAYS = 70
 _SIGNIFICANT_CORRECTION_KWH = 0.1
@@ -47,6 +48,7 @@ class ApartmentGridAccounting:
     @staticmethod
     def _empty_state() -> dict[str, Any]:
         return {
+            "accounting_state_version": _ACCOUNTING_STATE_VERSION,
             "mode": "authoritative_daily_grid",
             "official_total": 0.0,
             "recent_official": {},
@@ -71,6 +73,26 @@ class ApartmentGridAccounting:
         for key in ("recent_official", "pending_estimates"):
             if not isinstance(self._state.get(key), dict):
                 self._state[key] = {}
+        state_version = stored.get("accounting_state_version")
+        if (
+            not isinstance(state_version, int)
+            or isinstance(state_version, bool)
+            or state_version < _ACCOUNTING_STATE_VERSION
+        ):
+            stale_continuity = (
+                self._valid_energy(self._state.get("continuity_offset")) or 0.0
+            )
+            self._state["continuity_offset"] = 0.0
+            self._state["accounting_state_version"] = _ACCOUNTING_STATE_VERSION
+            await self._store.async_save(self._state)
+            _LOGGER.info(
+                "Migrated SmartEV grid accounting state to version %d: "
+                "removed stale continuity offset %.3f kWh while preserving "
+                "published total %s",
+                _ACCOUNTING_STATE_VERSION,
+                stale_continuity,
+                self._finite_number(self._state.get("published_total")),
+            )
 
     async def async_save(self) -> None:
         """Immediately persist state during config-entry unload."""
@@ -91,7 +113,7 @@ class ApartmentGridAccounting:
         report_available = official_daily is not None
 
         self._rollover_estimate(today_iso)
-        reconciliation_delta, reconciliation_date = self._reconcile_official(
+        official_correction_delta, reconciliation_date = self._reconcile_official(
             now, today, official_daily or {}
         )
 
@@ -127,25 +149,29 @@ class ApartmentGridAccounting:
         )
 
         if (
-            reconciliation_delta < 0
+            official_correction_delta < 0
             and previous is not None
             and candidate is not None
             and candidate < previous
         ):
-            increase = previous - candidate
+            # Replacing a live estimate with an official completed-day value
+            # must not permanently enter the difference into continuity.
+            # Only the part of a decrease caused by correcting an already
+            # official ledger entry is eligible for compensation.
+            increase = min(previous - candidate, -official_correction_delta)
             continuity += increase
             self._state["continuity_offset"] = continuity
-            candidate = previous
+            candidate += increase
             log = (
                 _LOGGER.info
-                if abs(reconciliation_delta) >= _SIGNIFICANT_CORRECTION_KWH
+                if abs(official_correction_delta) >= _SIGNIFICANT_CORRECTION_KWH
                 else _LOGGER.debug
             )
             log(
                 "SmartEV official grid reconciliation reduced the accounting "
                 "total by %.3f kWh through %s; increased continuity offset by "
                 "%.3f kWh to preserve the total-increasing sensor",
-                abs(reconciliation_delta),
+                abs(official_correction_delta),
                 reconciliation_date,
                 increase,
             )
@@ -159,6 +185,7 @@ class ApartmentGridAccounting:
         )
         self._state["published_total"] = published
         self._prune(today)
+        self._debug_dump_ledger(today_iso, baseline, continuity, published)
         self._schedule_save()
 
         month_prefix = today.strftime("%Y-%m-")
@@ -180,7 +207,7 @@ class ApartmentGridAccounting:
             else None
         )
 
-        return {
+        result = {
             "available": published is not None,
             "today": current_estimate,
             "current_month": month_total,
@@ -198,6 +225,13 @@ class ApartmentGridAccounting:
             ),
             "today_estimate": current_estimate,
         }
+        _LOGGER.debug(
+            "SmartEV grid publication pipeline: stage=accounting_update "
+            "published_total=%s result_total=%s",
+            published,
+            result["total"],
+        )
+        return result
 
     def _rollover_estimate(self, today: str) -> None:
         previous_date = self._state.get("estimate_date")
@@ -224,7 +258,7 @@ class ApartmentGridAccounting:
             self._finite_number(self._state.get("official_total")) or 0.0
         )
         cutoff = (today - timedelta(days=_RECENT_DAYS)).isoformat()
-        delta_total = 0.0
+        official_correction_total = 0.0
         changed = False
         last_changed_date = None
 
@@ -240,37 +274,47 @@ class ApartmentGridAccounting:
                 )
                 continue
 
+            ledger_before = {
+                "official_total": official_total,
+                "recent_official": dict(recent),
+                "pending_estimates": dict(pending),
+            }
             had_official = production_date in recent
             previous_official = self._valid_energy(recent.get(production_date))
             previous_estimate = self._valid_energy(pending.pop(production_date, None))
             if previous_official is None:
                 official_delta = value
-                replacement_delta = value - (previous_estimate or 0.0)
             else:
                 official_delta = value - previous_official
-                replacement_delta = official_delta
+                official_correction_total += official_delta
 
             if had_official and official_delta == 0 and previous_estimate is None:
                 continue
             official_total += official_delta
-            delta_total += replacement_delta
             recent[production_date] = value
             changed = True
             last_changed_date = production_date
             _LOGGER.debug(
-                "Reconciled SmartEV apartment grid day %s: official=%.3f kWh, "
-                "previous_official=%s, replaced_estimate=%s",
+                "Reconciled SmartEV apartment grid day: processed_date=%s, "
+                "official_grid_csv=%.3f kWh, previous_official=%s, "
+                "previous_estimate=%s, ledger_before=%s, ledger_after=%s",
                 production_date,
                 value,
                 previous_official,
                 previous_estimate,
+                ledger_before,
+                {
+                    "official_total": official_total,
+                    "recent_official": dict(recent),
+                    "pending_estimates": dict(pending),
+                },
             )
 
         if changed:
             self._state["official_total"] = official_total
             self._state["last_official_date"] = max(recent)
             self._state["last_reconciliation"] = now.isoformat()
-        return delta_total, last_changed_date
+        return official_correction_total, last_changed_date
 
     def _migrate(self, raw_total: float, legacy_total: Any, now: datetime) -> None:
         legacy = self._valid_energy(legacy_total)
@@ -307,6 +351,58 @@ class ApartmentGridAccounting:
         if self._state.get("estimate_date") != production_date:
             return None
         return self._valid_energy(self._state.get("today_estimate"))
+
+    def _debug_dump_ledger(
+        self,
+        today: str,
+        migration_baseline_offset: float,
+        continuity_offset: float,
+        published_total: float | None,
+    ) -> None:
+        """Log the complete retained daily ledger after reconciliation."""
+        if not _LOGGER.isEnabledFor(logging.DEBUG):
+            return
+
+        rows: list[tuple[str, str, float]] = []
+        for production_date, raw_value in self._state["recent_official"].items():
+            if (value := self._valid_energy(raw_value)) is not None:
+                rows.append((production_date, "official", value))
+        for production_date, raw_value in self._state["pending_estimates"].items():
+            if (value := self._valid_energy(raw_value)) is not None:
+                rows.append((production_date, "estimate", value))
+        if (value := self._estimate_for_date(today)) is not None:
+            rows.append((today, "estimate", value))
+
+        pending_total = sum(
+            value
+            for raw_value in self._state["pending_estimates"].values()
+            if (value := self._valid_energy(raw_value)) is not None
+        )
+        daily_lines = (
+            "\n".join(
+                f"  date={production_date} source={source} grid={value:.3f} kWh"
+                for production_date, source, value in sorted(rows)
+            )
+            or "  <no stored days>"
+        )
+        _LOGGER.debug(
+            "SmartEV ApartmentGridAccounting ledger after reconciliation "
+            "(processed_date=%s):\n%s\n"
+            "  official_completed_total=%.3f kWh\n"
+            "  pending_total=%.3f kWh\n"
+            "  today_estimate=%s\n"
+            "  migration_baseline_offset=%.3f kWh\n"
+            "  continuity_offset=%.3f kWh\n"
+            "  published_total=%s",
+            today,
+            daily_lines,
+            self._finite_number(self._state.get("official_total")) or 0.0,
+            pending_total,
+            self._estimate_for_date(today),
+            migration_baseline_offset,
+            continuity_offset,
+            published_total,
+        )
 
     def _prune(self, today: date) -> None:
         cutoff = (today - timedelta(days=_RECENT_DAYS)).isoformat()

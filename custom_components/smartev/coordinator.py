@@ -129,11 +129,24 @@ class SmartEVCoordinator(DataUpdateCoordinator[dict]):
                 today_grid_estimate,
                 legacy_total=self.pv_allocation.legacy_grid_total(),
             )
+            _LOGGER.debug(
+                "SmartEV grid publication pipeline: stage=coordinator_result "
+                "accounting_published_total=%s",
+                data["gridAccounting"].get("total"),
+            )
             data["todayGridEnergy"] = data["gridAccounting"]["today"]
             data["currentMonthGridEnergy"] = data["gridAccounting"][
                 "current_month"
             ]
             data["gridCumulative"] = data["gridAccounting"]
+            _LOGGER.debug(
+                "SmartEV grid publication pipeline: stage=coordinator_data "
+                "accounting_published_total=%s coordinator_value=%s "
+                "same_object=%s",
+                data["gridAccounting"].get("total"),
+                data["gridCumulative"].get("total"),
+                data["gridCumulative"] is data["gridAccounting"],
+            )
             return data
         except SmartEVAuthenticationError as err:
             raise ConfigEntryAuthFailed("SmartEV authentication failed") from err
