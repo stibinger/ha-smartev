@@ -48,7 +48,7 @@ The integration currently supports electricity meters and has been designed for 
 - Automatic PV allocation coefficient calibration
 - Estimated apartment PV production
 - Completed-day PV production total for the Home Assistant Energy Dashboard
-- Authoritative completed-day grid and PV statistics for the Home Assistant Energy Dashboard
+- Cumulative grid energy import for the Home Assistant Energy Dashboard
 
 ---
 
@@ -268,7 +268,7 @@ Integrace v současnosti podporuje elektroměry a je navržena pro budoucí roz�
 - Automatická kalibrace koeficientu přidělení výroby FVE
 - Odhadovaná výroba FVE pro byt
 - Celková výroba FVE z dokončených dnů pro Energy Dashboard Home Assistantu
-- Autoritativní statistiky odběru ze sítě a výroby FVE z dokončených dnů pro Energy Dashboard Home Assistantu
+- Celkový odběr energie ze sítě pro Energy Dashboard Home Assistantu
 
 ---
 
