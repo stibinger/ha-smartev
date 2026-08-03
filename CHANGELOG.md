@@ -4,30 +4,45 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## [0.7.2] - 2026-08-02
+
+### Added
+
+- Added authoritative Home Assistant long-term statistics for apartment grid import and PV production.
+- Added automatic backfill of SmartEV apartment production reports from January through the current month.
+- Added stable external statistics `smartev:grid_import_flat_<flat_id>` and `smartev:pv_production_flat_<flat_id>` so completed SmartEV days are recorded on their actual calendar dates.
+
 ### Changed
 
-- Made the live cumulative apartment register from `buildingFlatsMeters.php`
-  the primary consumption source.
-- Made the production CSV's apartment `Grid` column authoritative for completed
-  days while retaining consumption-minus-estimated-PV only for the current day.
-- Built current-month and cumulative grid import from reconciled official days
-  plus the live current-day estimate.
-- Preserved Energy Dashboard history with an immutable migration baseline and a
-  separate runtime continuity offset for downward SmartEV corrections.
+- Reworked completed-day accounting to recompute totals directly from authoritative SmartEV daily rows instead of carrying continuity or pending-estimate offsets.
+- Current-day PV and grid values remain live estimates only and are never written into long-term statistics.
+- Historical SmartEV corrections update the matching historical statistic instead of being counted on the day when the correction is received.
 
 ### Fixed
 
-- Retained the last accepted PV allocation coefficient when a newer candidate
-  calibration window is incomplete or unstable.
-- Kept valid cached cumulative PV and grid values available when a refresh
-  cannot advance the current-day PV estimate.
-- Restored exclusion of zero-grid report days from PV calibration. Including
-  those days introduced allocation-ratio outliers, prevented a coefficient
-  from being accepted, and made all estimated PV and derived grid entities
-  unavailable.
-- Migrated PV allocation and cumulative counter storage from config-entry IDs
-  to stable SmartEV apartment IDs so removing and re-adding an entry does not
-  reset counter continuity.
+- Fixed completed values being attributed to the following day when SmartEV published them after midnight.
+- Fixed a newly published completed day appearing as one large current-day Energy Dashboard increment.
+- Fixed incomplete cumulative totals after a clean integration installation by rebuilding the current year from SmartEV reports.
+
+
+### Changed
+
+- Separated live current-day estimates from completed SmartEV accounting.
+- Made cumulative PV production and grid-import sensors use only completed days
+  published by SmartEV; today's estimates are excluded from Energy Dashboard
+  totals until SmartEV publishes the completed day.
+- Kept today's estimated PV and grid import as informational live sensors.
+- Made today's grid estimate follow SmartEV accounting semantics with
+  `max(0, consumption - allocated PV)`.
+- Renamed the cumulative PV sensor display name from estimated production to
+  total PV production because it now contains completed SmartEV values only.
+
+### Fixed
+
+- Prevented falling current-day grid estimates from producing negative grid
+  consumption in the Home Assistant Energy Dashboard.
+- Removed pending-estimate carry-over from cumulative grid accounting; a day is
+  added to long-term totals only after SmartEV publishes its authoritative row.
 
 ## [0.7.0] - 2026-07-25
 

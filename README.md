@@ -47,7 +47,7 @@ The integration currently supports electricity meters and has been designed for 
 - Current month grid energy consumption
 - Automatic PV allocation coefficient calibration
 - Estimated apartment PV production
-- Cumulative estimated PV production for the Home Assistant Energy Dashboard
+- Completed-day PV production total for the Home Assistant Energy Dashboard
 - Cumulative grid energy import for the Home Assistant Energy Dashboard
 
 ---
@@ -149,43 +149,36 @@ reported day.
 
 ## Home Assistant Energy Dashboard
 
-Apartment accounts do not expose cumulative photovoltaic production through the
-SmartEV API.
+SmartEV publishes the apartment production report only for completed days. The
+integration follows the same accounting boundary for long-term energy
+statistics.
 
-To provide Energy Dashboard compatibility, the integration automatically
-calculates a stable apartment allocation coefficient from historical SmartEV
-data and estimates live apartment PV production from the JOM photovoltaic
-meter.
+Today's apartment PV production is estimated live from the JOM PV meter using
+the automatically calibrated allocation coefficient. Today's grid estimate is
+`max(0, apartment consumption - estimated apartment PV)`. Both are
+informational live sensors and may change while the day is open.
 
-The calibration process is fully automatic and requires no user
-configuration.
+Long-term Energy Dashboard data is written as authoritative **completed-day
+statistics**. On startup the integration downloads the apartment production
+reports from January through the current month and backfills every completed
+day on its actual calendar date. When SmartEV later corrects a historical row,
+the statistic for that date is updated; the correction is not charged to the
+day on which Home Assistant receives it.
 
-Allocation coefficients and cumulative counter continuity are stored by the
-stable SmartEV apartment ID. Existing config-entry-based storage is migrated
-automatically on the first startup after upgrading.
+Today's estimates are never written to long-term statistics. This is important
+because SmartEV can change the apartment allocation while the day is open.
 
-The SmartEV production report's apartment Grid column is authoritative for
-completed days and includes SmartEV's battery-aware accounting. The current
-unfinished day continues to use apartment consumption minus estimated PV until
-SmartEV publishes its official report value. Current-month and cumulative grid
-entities reconcile that estimate automatically when the completed day appears.
+The stable statistics are:
 
-For the Home Assistant Energy Dashboard configure:
+- `smartev:grid_import_flat_<flat_id>` — authoritative apartment grid import
+- `smartev:pv_production_flat_<flat_id>` — authoritative apartment PV production
 
-- Grid consumption → Total Grid Energy
-- Solar production → Total Estimated PV Production
+For a date-correct Energy Dashboard, select **SmartEV grid import** for grid
+consumption and **SmartEV PV production** for solar production. The cumulative
+sensor entities remain available as informational completed-day totals, but the
+external SmartEV statistics are the authoritative Energy Dashboard source.
 
-### Migration note
-
-Users upgrading from older integration versions may already have Energy
-Dashboard statistics created before persistent counter continuity was migrated
-to the stable SmartEV apartment ID.
-
-If the first cumulative grid reading after migration is interpreted as energy
-consumed during a single statistics interval, open **Developer Tools →
-Statistics**, select the first affected interval and set its interval change to
-**0 kWh**. This corrects the accumulated Energy Dashboard statistics without
-changing the live cumulative sensor state.
+The calibration process is fully automatic and requires no user configuration.
 
 ---
 
@@ -274,7 +267,7 @@ Integrace v současnosti podporuje elektroměry a je navržena pro budoucí roz�
 - Odběr energie ze sítě za aktuální měsíc
 - Automatická kalibrace koeficientu přidělení výroby FVE
 - Odhadovaná výroba FVE pro byt
-- Celková odhadovaná výroba FVE pro Energy Dashboard Home Assistantu
+- Celková výroba FVE z dokončených dnů pro Energy Dashboard Home Assistantu
 - Celkový odběr energie ze sítě pro Energy Dashboard Home Assistantu
 
 ---
@@ -371,26 +364,36 @@ SmartEV zveřejňuje denní výrobu FVE s jednodenním zpožděním. Senzor posl
 
 ## Energy Dashboard Home Assistantu
 
-Účty jednotlivých bytů neposkytují prostřednictvím rozhraní SmartEV API kumulativní výrobu fotovoltaiky.
+SmartEV zveřejňuje bytový přehled výroby až pro dokončené dny. Integrace proto
+pro dlouhodobé energetické statistiky používá stejnou účetní hranici.
 
-Aby byla zajištěna kompatibilita s Energy Dashboardem, integrace automaticky vypočítává stabilní koeficient přidělení výroby FVE z historických dat SmartEV a z výroby fotovoltaického měřidla JOM odhaduje aktuální výrobu FVE pro daný byt.
+Dnešní výroba FVE pro byt se průběžně odhaduje z FVE měřidla JOM pomocí
+automaticky kalibrovaného alokačního koeficientu. Dnešní odhad odběru ze sítě
+je `max(0, spotřeba bytu - odhadovaná výroba FVE)`. Oba senzory jsou pouze
+informativní a jejich hodnota se může během otevřeného dne měnit.
+
+Dlouhodobá data Energy Dashboardu se zapisují jako autoritativní statistiky
+**dokončených dnů**. Při spuštění integrace se načtou bytové přehledy SmartEV
+od ledna do aktuálního měsíce a každý dokončený den se zpětně zapíše ke svému
+skutečnému kalendářnímu datu. Pokud SmartEV později historický řádek opraví,
+opraví se statistika příslušného dne; změna se nezapočítá do dne, kdy ji Home
+Assistant obdržel.
+
+Dnešní odhady se do dlouhodobých statistik nikdy nezapisují. Je to důležité,
+protože SmartEV může alokaci bytu během otevřeného dne měnit.
+
+Stabilní statistiky jsou:
+
+- `smartev:grid_import_flat_<flat_id>` — autoritativní odběr bytu ze sítě
+- `smartev:pv_production_flat_<flat_id>` — autoritativní výroba FVE pro byt
+
+Pro datumově správný Energy Dashboard vyberte pro spotřebu ze sítě **SmartEV
+grid import** a pro solární výrobu **SmartEV PV production**. Kumulativní
+senzorové entity zůstávají k dispozici jako informativní součty dokončených
+dnů, ale autoritativním zdrojem Energy Dashboardu jsou externí statistiky
+SmartEV.
 
 Proces kalibrace je plně automatický a nevyžaduje žádnou konfiguraci uživatelem.
-
-Koeficient přidělení i kontinuita kumulativních čítačů jsou ukládány podle stabilního identifikátoru bytu SmartEV. Při prvním spuštění po aktualizaci jsou stávající data uložená podle identifikátoru konfigurační položky automaticky migrována.
-
-Živý kumulativní stav bytového elektroměru je primárním zdrojem údajů o spotřebě. Odběr ze sítě je odvozen jako rozdíl mezi kumulativní spotřebou bytu a kumulativně přidělenou výrobou FVE. Sloupec odběru ze sítě v CSV reportech SmartEV se nepoužívá pro živé ani kumulativní entity odběru ze sítě. Používá se pouze k vyřazení dnů s nulovým odběrem při kalibraci přidělení výroby FVE, protože SmartEV v těchto dnech nepoužívá běžný přidělovací poměr.
-
-Pro Energy Dashboard Home Assistantu nastavte:
-
-- Spotřeba ze sítě → Celkový odběr energie ze sítě
-- Výroba ze solárních panelů → Celková odhadovaná výroba FVE
-
-### Poznámka k migraci
-
-Uživatelé, kteří přecházejí ze starších verzí integrace, již mohou mít vytvořené statistiky Energy Dashboardu ještě před migrací ukládání kontinuity kumulativních čítačů na stabilní identifikátor bytu SmartEV.
-
-Pokud je první kumulativní odečet odběru ze sítě po migraci interpretován jako energie spotřebovaná během jednoho statistického intervalu, otevřete **Vývojářské nástroje → Statistiky**, vyberte první ovlivněný interval a nastavte jeho změnu na **0 kWh**. Tím dojde k opravě statistik Energy Dashboardu bez změny aktuální hodnoty kumulativního senzoru.
 
 ---
 

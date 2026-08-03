@@ -13,6 +13,7 @@ from homeassistant.util import dt as dt_util
 from .allocation import ApartmentPVAllocation
 from .client import SmartEVAuthenticationError
 from .grid_accounting import ApartmentGridAccounting
+from .energy_statistics import async_publish_completed_day_statistics
 
 from .const import DOMAIN
 
@@ -43,16 +44,26 @@ class SmartEVCoordinator(DataUpdateCoordinator[dict]):
             flat_id,
         )
         self.grid_accounting = ApartmentGridAccounting(hass, flat_id)
+        self.pv_accounting = ApartmentGridAccounting(
+            hass, flat_id, storage_name="pv_accounting"
+        )
+        self.flat_id = flat_id
+        self._history_bootstrapped_year: int | None = None
+        self._official_year_pv: dict[str, float] = {}
+        self._official_year_grid: dict[str, float] = {}
+        self._published_statistics_signature: tuple | None = None
 
     async def async_load(self) -> None:
         """Load persistent estimator state before the first refresh."""
         await self.pv_allocation.async_load()
         await self.grid_accounting.async_load()
+        await self.pv_accounting.async_load()
 
     async def async_shutdown(self) -> None:
         """Persist estimator state before unloading."""
         await self.pv_allocation.async_save()
         await self.grid_accounting.async_save()
+        await self.pv_accounting.async_save()
 
     async def _async_update_data(self):
         """Fetch data from SmartEV."""
@@ -118,6 +129,16 @@ class SmartEVCoordinator(DataUpdateCoordinator[dict]):
             today_grid_estimate = self._difference(
                 data["todayConsumption"], estimated_today
             )
+            official_daily_pv = (
+                current_month_production["pv"]["calibration_daily"]
+                if current_month_production is not None
+                else None
+            )
+            data["pvAccounting"] = self.pv_accounting.update(
+                now,
+                official_daily_pv,
+                estimated_today,
+            )
             official_daily_grid = (
                 current_month_production["grid"]["accounting_daily"]
                 if current_month_production is not None
@@ -127,7 +148,6 @@ class SmartEVCoordinator(DataUpdateCoordinator[dict]):
                 now,
                 official_daily_grid,
                 today_grid_estimate,
-                legacy_total=self.pv_allocation.legacy_grid_total(),
             )
             _LOGGER.debug(
                 "SmartEV grid publication pipeline: stage=coordinator_result "
@@ -139,6 +159,22 @@ class SmartEVCoordinator(DataUpdateCoordinator[dict]):
                 "current_month"
             ]
             data["gridCumulative"] = data["gridAccounting"]
+            data["officialYearPV"] = dict(self._official_year_pv)
+            data["officialYearGrid"] = dict(self._official_year_grid)
+            statistics_signature = (
+                now.date(),
+                tuple(sorted(self._official_year_grid.items())),
+                tuple(sorted(self._official_year_pv.items())),
+            )
+            if statistics_signature != self._published_statistics_signature:
+                async_publish_completed_day_statistics(
+                    self.hass,
+                    self.flat_id,
+                    now.date(),
+                    self._official_year_grid,
+                    self._official_year_pv,
+                )
+                self._published_statistics_signature = statistics_signature
             _LOGGER.debug(
                 "SmartEV grid publication pipeline: stage=coordinator_data "
                 "accounting_published_total=%s coordinator_value=%s "
@@ -242,6 +278,42 @@ class SmartEVCoordinator(DataUpdateCoordinator[dict]):
                         "Unable to update previous month's SmartEV production data: %s",
                         err,
                     )
+            # Bootstrap authoritative apartment history from January through the
+            # current month once per Home Assistant run. Subsequent minute polls
+            # refresh only the current month and merge SmartEV corrections.
+            if self._history_bootstrapped_year != year:
+                year_pv: dict[str, float] = {}
+                year_grid: dict[str, float] = {}
+                for history_month in range(1, month + 1):
+                    if history_month == month:
+                        report = current_month_production
+                    else:
+                        try:
+                            report = self.client.get_production_report(
+                                year=year, month=history_month
+                            )
+                        except (requests.RequestException, ValueError) as err:
+                            _LOGGER.warning(
+                                "Unable to bootstrap SmartEV production history "
+                                "for %04d-%02d: %s",
+                                year, history_month, err,
+                            )
+                            continue
+                    year_pv.update(report["pv"]["daily"])
+                    year_grid.update(report["grid"]["daily"])
+                self._official_year_pv = year_pv
+                self._official_year_grid = year_grid
+                self._history_bootstrapped_year = year
+            else:
+                self._official_year_pv.update(current_month_production["pv"]["daily"])
+                self._official_year_grid.update(current_month_production["grid"]["daily"])
+
+            # Accounting always receives the full authoritative year. Today's
+            # placeholder is ignored by ApartmentGridAccounting.
+            calibration_daily.update(self._official_year_pv)
+            calibration_daily_grid.update(self._official_year_grid)
+            accounting_daily_grid = dict(self._official_year_grid)
+
             current_month_production["pv"]["latest_daily"] = latest_daily
             current_month_production["pv"]["calibration_daily"] = calibration_daily
             current_month_production["grid"][

@@ -1,7 +1,7 @@
 {
     "domain": "smartev",
     "name": "SmartEV",
-    "version": "0.6.1",
+    "version": "0.7.2",
     "documentation": "https://github.com/stibinger/ha-smartev",
     "issue_tracker": "https://github.com/stibinger/ha-smartev/issues",
     "integration_type": "hub",

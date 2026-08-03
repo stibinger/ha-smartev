@@ -398,16 +398,6 @@ class ApartmentPVAllocation:
         self._state["last_jom_register"] = register
         self._state["last_jom_daily"] = current_daily
 
-    def legacy_grid_total(self) -> float | None:
-        """Return the last grid total solely for one-time accounting migration."""
-        counters = self._state.get("cumulative_counters")
-        if not isinstance(counters, dict):
-            return None
-        grid = counters.get("grid")
-        if not isinstance(grid, dict):
-            return None
-        return self._finite_number(grid.get("total"))
-
     def _result(self, today: str) -> dict[str, Any]:
         """Return accepted cached values even if the latest input is missing."""
         coefficient = self._finite_number(self._state.get("coefficient"))
