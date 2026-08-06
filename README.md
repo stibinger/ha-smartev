@@ -159,11 +159,15 @@ the automatically calibrated allocation coefficient. Today's grid estimate is
 informational live sensors and may change while the day is open.
 
 Long-term Energy Dashboard data is written as authoritative **completed-day
-statistics**. On startup the integration downloads the apartment production
-reports from January through the current month and backfills every completed
-day on its actual calendar date. When SmartEV later corrects a historical row,
-the statistic for that date is updated; the correction is not charged to the
-day on which Home Assistant receives it.
+statistics**. On a fresh installation the integration downloads the apartment
+production reports from January through the current month and backfills every
+completed day on its actual calendar date. The authoritative history is then
+persisted locally, so Home Assistant restarts do not repeat the full backfill.
+The current-month production report is refreshed at most once per day after
+09:00 local time, while a full-year refresh runs at most once per week to pick
+up historical SmartEV corrections. When SmartEV corrects a historical row, the
+statistic for that date is updated; the correction is not charged to the day on
+which Home Assistant receives it.
 
 Today's estimates are never written to long-term statistics. This is important
 because SmartEV can change the apartment allocation while the day is open.
@@ -179,6 +183,9 @@ sensor entities remain available as informational completed-day totals, but the
 external SmartEV statistics are the authoritative Energy Dashboard source.
 
 The calibration process is fully automatic and requires no user configuration.
+
+Normal cloud polling runs once per hour. Expensive completed-day and historical
+reports use the slower schedules described above to minimize SmartEV server load.
 
 ---
 
@@ -373,11 +380,14 @@ je `max(0, spotřeba bytu - odhadovaná výroba FVE)`. Oba senzory jsou pouze
 informativní a jejich hodnota se může během otevřeného dne měnit.
 
 Dlouhodobá data Energy Dashboardu se zapisují jako autoritativní statistiky
-**dokončených dnů**. Při spuštění integrace se načtou bytové přehledy SmartEV
-od ledna do aktuálního měsíce a každý dokončený den se zpětně zapíše ke svému
-skutečnému kalendářnímu datu. Pokud SmartEV později historický řádek opraví,
-opraví se statistika příslušného dne; změna se nezapočítá do dne, kdy ji Home
-Assistant obdržel.
+**dokončených dnů**. Při nové instalaci integrace se načtou bytové přehledy
+SmartEV od ledna do aktuálního měsíce a každý dokončený den se zpětně zapíše ke
+svému skutečnému kalendářnímu datu. Autoritativní historie se potom ukládá
+lokálně, takže restart Home Assistantu celý backfill neopakuje. Přehled za
+aktuální měsíc se obnovuje nejvýše jednou denně po 09:00 místního času a celý
+rok nejvýše jednou týdně kvůli případným historickým opravám SmartEV. Pokud
+SmartEV historický řádek opraví, opraví se statistika příslušného dne; změna se
+nezapočítá do dne, kdy ji Home Assistant obdržel.
 
 Dnešní odhady se do dlouhodobých statistik nikdy nezapisují. Je to důležité,
 protože SmartEV může alokaci bytu během otevřeného dne měnit.
@@ -394,6 +404,10 @@ dnů, ale autoritativním zdrojem Energy Dashboardu jsou externí statistiky
 SmartEV.
 
 Proces kalibrace je plně automatický a nevyžaduje žádnou konfiguraci uživatelem.
+
+Běžné cloudové dotazování probíhá jednou za hodinu. Náročnější přehledy
+dokončených dnů a historie používají výše popsané pomalejší intervaly, aby se
+minimalizovala zátěž serverů SmartEV.
 
 ---
 

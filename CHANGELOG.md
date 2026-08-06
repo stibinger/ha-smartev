@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## [0.7.3] - 2026-08-06
+
+### Changed
+
+- Reduced the main SmartEV polling interval from once per minute to once per hour.
+- Limited the apartment production CSV to at most one refresh per day after 09:00 local time, matching SmartEV's delayed completed-day publication.
+- Added persistent server-side data caching so Home Assistant restarts reuse authoritative history instead of downloading the full year again.
+- Limited full-year production-history refreshes to once per week to detect historical SmartEV corrections without repeatedly loading old reports.
+- Removed repeated previous-month JOM/report requests from normal polling; persisted calibration and authoritative daily data are reused across month boundaries.
+
+### Fixed
+
+- Prevented minute-by-minute downloads of yearly, monthly, JOM PV, and production-report data that could unnecessarily load SmartEV servers.
+- Preserved v0.7.2 completed-day Energy Dashboard statistics and accounting behavior while reducing cloud requests.
+
 ## [0.7.2] - 2026-08-02
 
 ### Added

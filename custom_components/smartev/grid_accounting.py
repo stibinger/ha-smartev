@@ -76,6 +76,10 @@ class ApartmentGridAccounting:
         """Immediately persist state during config-entry unload."""
         await self._store.async_save(self._state)
 
+    def official_daily(self) -> dict[str, float]:
+        """Return a copy of persisted authoritative daily values."""
+        return dict(self._state.get("recent_official") or {})
+
     def update(
         self,
         now: datetime,
