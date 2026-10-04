@@ -5,6 +5,9 @@
         "@stibinger"
     ],
     "config_flow": true,
+    "dependencies": [
+        "recorder"
+    ],
     "documentation": "https://github.com/stibinger/ha-smartev",
     "integration_type": "hub",
     "iot_class": "cloud_polling",
