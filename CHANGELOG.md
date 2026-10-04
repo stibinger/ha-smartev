@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.7.4] - 2026-10-04
+
+### Release
+
+- Ship the implementation verified in a real Home Assistant installation against the updated SmartEV web application's responses.
+- Include cold water (SV), hot water (TUV), and heating RTN readings alongside preserved electricity/PV support and existing electrical entity IDs.
+- Include robust handling of mixed meter types, unknown meters, and optional water/heating endpoint failures.
+- Retain the tested polling, caching, and completed-day electricity/PV accounting behavior without functional Python changes.
+- Add HACS validation and hassfest to GitHub Actions.
+- Water/RTN accumulation and reset semantics remain unconfirmed; long-term statistics for these channels remain disabled.
+
 ## [0.7.3] - 2026-10-04
 
 ### Added
