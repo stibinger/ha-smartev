@@ -1,0 +1,47 @@
+{
+  "buildingId": 10,
+  "flats": [
+    {
+      "id": 200,
+      "name": "Test apartment",
+      "fname": "Test apartment",
+      "lname": "Test apartment",
+      "storey": 3,
+      "number": 13,
+      "meters": [
+        {
+          "id": 13,
+          "dt": 1790934967,
+          "type": 0,
+          "value1": 3289.532958984375,
+          "value2": "NaN",
+          "unit": "kWh"
+        },
+        {
+          "id": -1,
+          "dt": 1790884813,
+          "type": 5,
+          "value1": 0,
+          "value2": 698,
+          "unit": ""
+        },
+        {
+          "id": -1,
+          "dt": 1790883965,
+          "type": 3,
+          "value1": 83,
+          "value2": 0,
+          "unit": ""
+        },
+        {
+          "id": -1,
+          "dt": 1790883680,
+          "type": 4,
+          "value1": 7,
+          "value2": 0,
+          "unit": ""
+        }
+      ]
+    }
+  ]
+}

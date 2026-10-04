@@ -27,7 +27,7 @@
     "error": {
       "cannot_connect": "Nepodařilo se připojit ke SmartEV. Zkuste to znovu později.",
       "invalid_auth": "Neplatná e-mailová adresa nebo heslo.",
-      "unsupported_apartment": "Vybraný byt nemá podporovaný elektroměr.",
+      "unsupported_apartment": "Vybraný byt nemá podporovaná data měřidel.",
       "unknown": "Při připojování ke SmartEV došlo k neočekávané chybě."
     },
     "abort": {
@@ -74,6 +74,24 @@
       },
       "last_reading": {
         "name": "Čas posledního odečtu"
+      },
+      "cold_water": {
+        "name": "Studená voda"
+      },
+      "hot_water": {
+        "name": "Teplá voda"
+      },
+      "heating_rtn": {
+        "name": "Topení RTN"
+      },
+      "cold_water_last_reading": {
+        "name": "Poslední odečet studené vody"
+      },
+      "hot_water_last_reading": {
+        "name": "Poslední odečet teplé vody"
+      },
+      "heating_rtn_last_reading": {
+        "name": "Poslední odečet RTN"
       }
     }
   }

@@ -1,0 +1,23 @@
+{
+  "buildingId": 10,
+  "flats": [
+    {
+      "id": 200,
+      "name": "Test apartment",
+      "fname": "Test apartment",
+      "lname": "Test apartment",
+      "storey": 3,
+      "number": 13,
+      "meters": [
+        {
+          "id": 13,
+          "dt": 1784545869,
+          "type": 0,
+          "value1": 3289.2041015625,
+          "value2": "NaN",
+          "unit": "kWh"
+        }
+      ]
+    }
+  ]
+}

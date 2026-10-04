@@ -4,14 +4,15 @@
 """SmartEV API client."""
 
 import csv
-from datetime import UTC, datetime
-from io import StringIO
 import math
 import re
+from datetime import UTC, datetime
+from io import StringIO
 from urllib.parse import urlparse
 
 import requests
 
+from .meters import finite_number, meters_by_type, reading_datetime
 
 _AUTHENTICATION_PATH_NAMES = {"auth", "login", "login.php", "sign-in", "signin"}
 _PASSWORD_INPUT_PATTERN = re.compile(
@@ -22,9 +23,7 @@ _PASSWORD_INPUT_PATTERN = re.compile(
 
 def _is_authentication_response(response: requests.Response) -> bool:
     """Return whether a response contains an authentication page."""
-    path_name = (
-        urlparse(response.url).path.rstrip("/").rsplit("/", 1)[-1].casefold()
-    )
+    path_name = urlparse(response.url).path.rstrip("/").rsplit("/", 1)[-1].casefold()
 
     if path_name in _AUTHENTICATION_PATH_NAMES:
         return True
@@ -49,53 +48,28 @@ def _validate_flat_info(data: object) -> dict:
 
     meters = data["meters"]
     if not isinstance(meters, list):
-        raise SmartEVResponseError(
-            "SmartEV response field 'meters' must be a list."
-        )
+        raise SmartEVResponseError("SmartEV response field 'meters' must be a list.")
 
-    if len(meters) != 1:
-        raise SmartEVResponseError(
-            "SmartEV response must contain exactly one meter."
-        )
-
-    meter = meters[0]
-    if not isinstance(meter, dict):
-        raise SmartEVResponseError("SmartEV meter data must be a JSON object.")
-
-    if "id" not in meter:
-        raise SmartEVResponseError("SmartEV meter data is missing the 'id' field.")
-
-    value = meter.get("value1")
-    if value is not None and (
-        isinstance(value, bool)
-        or not isinstance(value, (int, float))
-        or isinstance(value, float)
-        and not math.isfinite(value)
-    ):
-        raise SmartEVResponseError(
-            "SmartEV meter field 'value1' must be a finite number or null."
-        )
-
-    timestamp = meter.get("dt")
-    if timestamp is not None and (
-        isinstance(timestamp, bool)
-        or not isinstance(timestamp, (int, float))
-        or isinstance(timestamp, float)
-        and not math.isfinite(timestamp)
-    ):
-        raise SmartEVResponseError(
-            "SmartEV meter field 'dt' must be a finite numeric timestamp or null."
-        )
-
-    if timestamp is not None:
-        try:
-            datetime.fromtimestamp(timestamp, UTC)
-        except (OSError, OverflowError, ValueError) as err:
-            raise SmartEVResponseError(
-                "SmartEV meter field 'dt' is outside the supported timestamp range."
-            ) from err
-
+    _validate_electricity_meters(meters, live=False)
     return data
+
+
+def _validate_electricity_meters(meters: list, *, live: bool) -> None:
+    """Validate electricity independently from optional water/RTN metadata."""
+    for meter in meters_by_type(meters).get(0, []):
+        if meter.get("id") is None:
+            # The dashboard can include a no-meter placeholder.
+            continue
+        value = meter.get("value1")
+        if (live or value is not None) and finite_number(value) is None:
+            raise SmartEVResponseError(
+                "SmartEV electricity meter field 'value1' must be finite."
+            )
+        timestamp = meter.get("dt")
+        if (live or timestamp is not None) and reading_datetime(timestamp) is None:
+            raise SmartEVResponseError(
+                "SmartEV electricity meter field 'dt' must be a valid timestamp."
+            )
 
 
 def _validate_live_flat_info(data: object, flat_id: int) -> dict:
@@ -116,39 +90,11 @@ def _validate_live_flat_info(data: object, flat_id: int) -> dict:
         )
     flat = matches[0]
     meters = flat.get("meters")
-    if not isinstance(meters, list) or len(meters) != 1:
+    if not isinstance(meters, list):
         raise SmartEVResponseError(
-            "SmartEV live apartment response must contain exactly one meter."
+            "SmartEV live apartment response must contain a meter list."
         )
-    meter = meters[0]
-    if not isinstance(meter, dict) or meter.get("id") is None:
-        raise SmartEVResponseError(
-            "SmartEV live apartment meter has an invalid identity."
-        )
-    value = meter.get("value1")
-    if (
-        isinstance(value, bool)
-        or not isinstance(value, (int, float))
-        or not math.isfinite(value)
-    ):
-        raise SmartEVResponseError(
-            "SmartEV live apartment meter field 'value1' must be finite."
-        )
-    timestamp = meter.get("dt")
-    if (
-        isinstance(timestamp, bool)
-        or not isinstance(timestamp, (int, float))
-        or not math.isfinite(timestamp)
-    ):
-        raise SmartEVResponseError(
-            "SmartEV live apartment meter field 'dt' must be finite."
-        )
-    try:
-        datetime.fromtimestamp(timestamp, UTC)
-    except (OSError, OverflowError, ValueError) as err:
-        raise SmartEVResponseError(
-            "SmartEV live apartment meter timestamp is outside the supported range."
-        ) from err
+    _validate_electricity_meters(meters, live=True)
     return flat
 
 
@@ -200,7 +146,7 @@ def _parse_production_csv(content: bytes) -> dict:
             total_grid = grid_value
             continue
         try:
-            date = datetime.strptime(row[0], "%d.%m.%Y").date()
+            date = datetime.strptime(row[0], "%d.%m.%Y").replace(tzinfo=UTC).date()
         except ValueError as err:
             raise SmartEVResponseError(
                 "SmartEV production report contains an invalid date."
@@ -297,9 +243,7 @@ class SmartEVClient:
         if self._jom_id is not None:
             return self._jom_id
 
-        data = self._get_json(
-            "/reports/prehled-vyroby-data.php", action="getJoms"
-        )
+        data = self._get_json("/reports/prehled-vyroby-data.php", action="getJoms")
         if not isinstance(data, list):
             raise SmartEVResponseError(
                 "SmartEV production report topology must be a JSON array."
@@ -450,7 +394,9 @@ class SmartEVClient:
                     if not isinstance(building, dict):
                         continue
                     building_id = building.get("id")
-                    if isinstance(building_id, int) and not isinstance(building_id, bool):
+                    if isinstance(building_id, int) and not isinstance(
+                        building_id, bool
+                    ):
                         buildings[building_id] = str(
                             building.get("name") or building_id
                         )
@@ -505,7 +451,33 @@ class SmartEVClient:
         """Return the configured apartment's live cumulative meter response."""
         if self._flat_id is None:
             raise ValueError("flat_id is required for get_live_flat_info().")
-        data = self._get_json(
-            "/data/buildingFlatsMeters.php", buildingId=building_id
-        )
+        data = self._get_json("/data/buildingFlatsMeters.php", buildingId=building_id)
         return _validate_live_flat_info(data, self._flat_id)
+
+    def get_water_heating_state(
+        self, *, jom_id: int, building_id: int, flat_name: str
+    ) -> dict:
+        """Read current water/RTN using the exact discovered dashboard context."""
+        if self._flat_id is None:
+            raise ValueError("flat_id is required for water/heating state.")
+        if (
+            isinstance(jom_id, bool)
+            or not isinstance(jom_id, int)
+            or isinstance(building_id, bool)
+            or not isinstance(building_id, int)
+            or not isinstance(flat_name, str)
+        ):
+            raise SmartEVResponseError("SmartEV water/heating context is incomplete.")
+        data = self._get_json(
+            "/data/waterHeatingMetersState.php",
+            action="getWaterHeatingMetersStateData",
+            flatId=self._flat_id,
+            jomId=jom_id,
+            buildingId=building_id,
+            flatName=flat_name,
+        )
+        if not isinstance(data, dict) or not isinstance(
+            data.get("currentMetersStateData"), dict
+        ):
+            raise SmartEVResponseError("SmartEV water/heating response is invalid.")
+        return data

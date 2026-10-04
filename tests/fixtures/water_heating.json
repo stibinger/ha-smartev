@@ -1,0 +1,17 @@
+{
+  "currentMetersStateData": {
+    "RTN": 0,
+    "SV": 83,
+    "TUV": 7
+  },
+  "monthMetersStateData": {
+    "RTN": 0,
+    "SV": 0,
+    "TUV": 0
+  },
+  "yearMetersStateData": {
+    "RTN": 0,
+    "SV": 83,
+    "TUV": 7
+  }
+}

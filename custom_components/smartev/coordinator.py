@@ -1,8 +1,8 @@
 # Copyright (c) 2026 Petr Štibinger
 # SPDX-License-Identifier: MIT
 
-from datetime import date, datetime, timedelta
 import logging
+from datetime import date, datetime, timedelta
 
 import requests
 from homeassistant.core import HomeAssistant
@@ -13,10 +13,10 @@ from homeassistant.util import dt as dt_util
 
 from .allocation import ApartmentPVAllocation
 from .client import SmartEVAuthenticationError
-from .grid_accounting import ApartmentGridAccounting
-from .energy_statistics import async_publish_completed_day_statistics
-
 from .const import DOMAIN
+from .energy_statistics import async_publish_completed_day_statistics
+from .grid_accounting import ApartmentGridAccounting
+from .meters import ONLINE_CHANNELS, electricity_meter, meters_by_type, online_channels
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -29,7 +29,9 @@ _CACHE_VERSION = 1
 class SmartEVCoordinator(DataUpdateCoordinator[dict]):
     """SmartEV data coordinator with rate-limited server access."""
 
-    def __init__(self, hass: HomeAssistant, client, entry_id: str, flat_id: int) -> None:
+    def __init__(
+        self, hass: HomeAssistant, client, entry_id: str, flat_id: int
+    ) -> None:
         super().__init__(
             hass,
             logger=_LOGGER,
@@ -95,9 +97,8 @@ class SmartEVCoordinator(DataUpdateCoordinator[dict]):
         """Fetch hourly live data and rate-limited aggregate data from SmartEV."""
         try:
             now = dt_util.now()
-            if (
-                self._last_history_refresh is None
-                and (self._official_year_pv or self._official_year_grid)
+            if self._last_history_refresh is None and (
+                self._official_year_pv or self._official_year_grid
             ):
                 # Seed the correction timer when upgrading from v0.7.2 without
                 # forcing an immediate historical download.
@@ -124,13 +125,14 @@ class SmartEVCoordinator(DataUpdateCoordinator[dict]):
             if cache_changed:
                 await self._async_save_cache()
 
+            if data.get("electricityMeter") is None:
+                return data
+
             data["currentYearConsumption"] = self._period_value(data, now.year)
             data["currentMonthConsumption"] = self._period_value(
                 current_year_data, now.month
             )
-            data["todayConsumption"] = self._period_value(
-                current_month_data, now.day
-            )
+            data["todayConsumption"] = self._period_value(current_month_data, now.day)
             data["currentMonthProduction"] = None
             data["latestDailyProduction"] = None
             data["latestDailyProductionDate"] = None
@@ -138,7 +140,9 @@ class SmartEVCoordinator(DataUpdateCoordinator[dict]):
                 data["currentMonthProduction"] = current_month_production["pv"]["total"]
                 latest = current_month_production["pv"].get("latest_daily")
                 if latest is not None:
-                    data["latestDailyProductionDate"], data["latestDailyProduction"] = latest
+                    data["latestDailyProductionDate"], data["latestDailyProduction"] = (
+                        latest
+                    )
 
             data["dailyAggregation"] = current_month_data
             apartment_daily_pv = (
@@ -209,17 +213,28 @@ class SmartEVCoordinator(DataUpdateCoordinator[dict]):
         refresh_history: bool,
     ) -> tuple[dict, dict, dict, dict | None, dict | None, bool]:
         """Fetch shared server data while keeping expensive reports rate-limited."""
-        # These five calls provide the hourly entities.  No entity performs its
-        # own polling, so all sensors share this single coordinator refresh.
+        # No entity performs its own polling. Reuse the live building response
+        # for electricity selection, channel discovery, and source timestamps.
         data = self.client.get_flat_info()
         live_flat = self.client.get_live_flat_info(data["buildingId"])
-        live_meter = live_flat["meters"][0]
-        data["meters"][0].update(
-            {
-                key: live_meter.get(key)
-                for key in ("id", "dt", "type", "value1", "value2", "unit")
-            }
+        grouped = meters_by_type(live_flat["meters"])
+        data["metersByType"] = grouped
+        data["onlineChannels"] = self._get_online_channels(data, live_flat, grouped)
+        chart_meter = electricity_meter(data["meters"])
+        live_meter = electricity_meter(
+            live_flat["meters"], chart_meter["id"] if chart_meter else None
         )
+        if chart_meter is not None and live_meter is not None:
+            chart_meter.update(
+                {
+                    key: live_meter.get(key)
+                    for key in ("id", "dt", "type", "value1", "value2", "unit")
+                }
+            )
+        # Do not silently switch an existing electric entity to a different ID.
+        data["electricityMeter"] = live_meter
+        if live_meter is None:
+            return data, {}, {}, None, None, False
         current_year_data = self.client.get_flat_info(year=year)
         current_month_data = self.client.get_flat_info(year=year, month=month)
         try:
@@ -239,7 +254,9 @@ class SmartEVCoordinator(DataUpdateCoordinator[dict]):
             latest_report: dict | None = None
             for history_month in range(1, month + 1):
                 try:
-                    report = self.client.get_production_report(year=year, month=history_month)
+                    report = self.client.get_production_report(
+                        year=year, month=history_month
+                    )
                 except (requests.RequestException, ValueError) as err:
                     _LOGGER.warning(
                         "Unable to refresh SmartEV production history for %04d-%02d: %s",
@@ -274,7 +291,9 @@ class SmartEVCoordinator(DataUpdateCoordinator[dict]):
                 self._last_daily_report_refresh = now
                 cache_changed = True
             except (requests.RequestException, ValueError) as err:
-                _LOGGER.debug("Unable to update optional SmartEV production data: %s", err)
+                _LOGGER.debug(
+                    "Unable to update optional SmartEV production data: %s", err
+                )
 
         current_month_production = self._prepare_production(today)
         return (
@@ -286,13 +305,38 @@ class SmartEVCoordinator(DataUpdateCoordinator[dict]):
             cache_changed,
         )
 
+    def _get_online_channels(self, data: dict, live_flat: dict, grouped: dict) -> dict:
+        """Isolate optional waterHeating failures from electrical updates.
+
+        Never reuse the last successful value after a failed request. Timestamps
+        remain available because they came from the successful building request.
+        """
+        response = None
+        if any(meter_type in grouped for meter_type in ONLINE_CHANNELS):
+            try:
+                response = self.client.get_water_heating_state(
+                    jom_id=data.get("jomId"),
+                    building_id=data.get("buildingId"),
+                    flat_name=live_flat.get("name"),
+                )
+            except (requests.RequestException, ValueError) as err:
+                # Error text/URLs may include account metadata; log only its kind.
+                _LOGGER.debug(
+                    "Unable to update optional SmartEV water/heating state (%s)",
+                    type(err).__name__,
+                )
+        return online_channels(grouped, response)
+
     def _prepare_production(self, today: date) -> dict | None:
         """Build the production structure consumed by sensors and accounting."""
         source = self._current_month_production
         if not isinstance(source, dict):
             if not self._official_year_pv and not self._official_year_grid:
                 return None
-            source = {"pv": {"total": 0.0, "daily": {}}, "grid": {"total": 0.0, "daily": {}}}
+            source = {
+                "pv": {"total": 0.0, "daily": {}},
+                "grid": {"total": 0.0, "daily": {}},
+            }
 
         pv = source.get("pv") if isinstance(source.get("pv"), dict) else {}
         grid = source.get("grid") if isinstance(source.get("grid"), dict) else {}
@@ -303,12 +347,14 @@ class SmartEVCoordinator(DataUpdateCoordinator[dict]):
         completed_month_pv = sum(
             value
             for production_date, value in self._official_year_pv.items()
-            if production_date.startswith(month_prefix) and production_date < today.isoformat()
+            if production_date.startswith(month_prefix)
+            and production_date < today.isoformat()
         )
         completed_month_grid = sum(
             value
             for production_date, value in self._official_year_grid.items()
-            if production_date.startswith(month_prefix) and production_date < today.isoformat()
+            if production_date.startswith(month_prefix)
+            and production_date < today.isoformat()
         )
         return {
             "pv": {
@@ -350,8 +396,12 @@ class SmartEVCoordinator(DataUpdateCoordinator[dict]):
                 "official_year_pv": self._official_year_pv,
                 "official_year_grid": self._official_year_grid,
                 "current_month_production": self._current_month_production,
-                "last_daily_report_refresh": self._format_datetime(self._last_daily_report_refresh),
-                "last_history_refresh": self._format_datetime(self._last_history_refresh),
+                "last_daily_report_refresh": self._format_datetime(
+                    self._last_daily_report_refresh
+                ),
+                "last_history_refresh": self._format_datetime(
+                    self._last_history_refresh
+                ),
             }
         )
 
@@ -384,10 +434,10 @@ class SmartEVCoordinator(DataUpdateCoordinator[dict]):
 
     @staticmethod
     def _period_value(data: dict, index: int) -> int | float | None:
-        meters = data.get("meters")
-        if not meters:
+        meter = electricity_meter(data.get("meters") or [])
+        if meter is None:
             return None
-        for item in meters[0].get("chartData") or []:
+        for item in meter.get("chartData") or []:
             if not isinstance(item, dict):
                 continue
             if str(item.get("idx", "")).lstrip("0") == str(index):
@@ -399,8 +449,8 @@ class SmartEVCoordinator(DataUpdateCoordinator[dict]):
 
     @staticmethod
     def _difference(
-        consumption: int | float | None,
-        pv_allocation: int | float | None,
+        consumption: float | None,
+        pv_allocation: float | None,
     ) -> float | None:
         if (
             isinstance(consumption, bool)

@@ -5,9 +5,9 @@
 
 from __future__ import annotations
 
-from datetime import date, datetime, time
 import logging
 import math
+from datetime import date, datetime, time
 from typing import Any
 
 from homeassistant.components.recorder.models import (

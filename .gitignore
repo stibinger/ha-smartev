@@ -1,5 +1,8 @@
 # Python
 __pycache__/
+.ruff_cache/
+.pytest_cache/
+/SmartEV.zip
 *.py[cod]
 *.pyo
 *.pyd

@@ -22,8 +22,8 @@ from .client import (
     SmartEVClient,
     SmartEVResponseError,
 )
-
-from .const import CONF_EMAIL, CONF_FLAT_ID, CONF_PASSWORD, DOMAIN
+from .const import CONF_EMAIL, CONF_FLAT_ID, CONF_PASSWORD
+from .const import DOMAIN as DOMAIN
 from .coordinator import SmartEVCoordinator
 
 _LOGGER = logging.getLogger(__name__)

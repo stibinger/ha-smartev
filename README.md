@@ -25,7 +25,11 @@ A custom Home Assistant integration for SmartEV utility meters.
 
 SmartEV Home Assistant Integration connects Home Assistant to the SmartEV cloud platform and retrieves utility meter data from the SmartEV cloud.
 
-The integration currently supports electricity meters and has been designed for future expansion to additional SmartEV devices, including water meters.
+The integration supports electricity meters and online apartment channels for cold water, hot water and heating cost allocators (RTN).
+
+Release **0.7.3** supports the updated responses used by the SmartEV web
+application. It uses the application's existing endpoints; these are not the
+promised new public API.
 
 ---
 
@@ -57,7 +61,8 @@ The integration currently supports electricity meters and has been designed for 
 | Meter | Status |
 |--------|--------|
 | ⚡ Electricity | ✅ Supported |
-| 🚰 Water | 🚧 Planned |
+| 🚰 Cold and hot water | ✅ Online readings |
+| ♨️ Heating RTN | ✅ Online readings in allocator units |
 
 ---
 
@@ -138,7 +143,18 @@ The integration currently creates sensors for:
 - Total grid energy
 - Last meter reading (diagnostic)
 
-The list of entities will expand as new SmartEV functionality becomes available.
+Available apartments also get **Cold water**, **Hot water**, **Heating RTN** and
+separate last-reading timestamp sensors. Water values use m³; RTN uses allocator
+units (dílky), not energy. Channels are discovered from the apartment's live meter
+types, so absent channels create no entities. A temporarily failed water/heating
+request makes its value sensors unavailable while electricity and valid source
+timestamps continue to update. New channels can appear on a later refresh.
+
+Water and RTN sensors have no state class: cumulative behavior and reset rules
+are not yet confirmed. They do not supply long-term statistics for the Energy/Water
+Dashboard. Values represent the dashboard's current readings; RTN value2 is not
+interpreted. Multiple records of the same type do not produce guessed physical
+devices or an aggregate timestamp. Existing electrical entity unique IDs are preserved.
 
 SmartEV publishes daily PV production with a one-day delay. The latest daily PV
 production sensor therefore shows the newest completed calendar day's value and
@@ -187,6 +203,16 @@ The calibration process is fully automatic and requires no user configuration.
 Normal cloud polling runs once per hour. Expensive completed-day and historical
 reports use the slower schedules described above to minimize SmartEV server load.
 
+A successful routine refresh uses **5 HTTP requests** for electricity/PV, or
+**6** when any cold-water, hot-water or RTN channel exists. All optional channels
+share one request; absent channels cause no optional request or entity creation.
+The authenticated session is reused without an hourly login. One daily CSV adds
+one request; a weekly history refresh downloads January through the current
+month and reuses its current-month CSV. Startup also logs in and resolves the
+production topology once per session. Counts exclude HTTP redirects, manual
+refreshes and retries after failures. See [the release audit](docs/RELEASE_0.7.3.md)
+for endpoint counts, startup behavior and failure handling.
+
 ---
 
 ## Calibration diagnostics
@@ -206,7 +232,6 @@ The estimated PV entities expose diagnostic attributes including:
 
 ## Planned features
 
-- Water meter support
 - Support for additional SmartEV devices
 - Publication in the official HACS repository
 
@@ -252,7 +277,10 @@ See the LICENSE file for details.
 
 Integrace SmartEV pro Home Assistant propojuje Home Assistant s cloudovou platformou SmartEV a načítá data z měřidel energií ze služby SmartEV.
 
-Integrace v současnosti podporuje elektroměry a je navržena pro budoucí rozšíření o další zařízení SmartEV, včetně vodoměrů.
+Integrace podporuje elektroměry a online bytové odečty studené vody, teplé vody a rozdělovačů topných nákladů (RTN).
+
+Verze **0.7.3** podporuje aktualizované odpovědi používané webovou aplikací
+SmartEV. Využívá její stávající endpointy; nejde o slíbené nové veřejné API.
 
 ---
 
@@ -284,7 +312,8 @@ Integrace v současnosti podporuje elektroměry a je navržena pro budoucí roz�
 | Měřidlo | Stav |
 |----------|------|
 | ⚡ Elektřina | ✅ Podporováno |
-| 🚰 Voda | 🚧 Plánováno |
+| 🚰 Studená a teplá voda | ✅ Online odečty |
+| ♨️ Topení RTN | ✅ Online odečty v dílcích |
 
 ---
 
@@ -365,6 +394,18 @@ Integrace aktuálně vytváří následující senzory:
 - Celkový odběr energie ze sítě
 - Poslední odečet elektroměru (diagnostický)
 
+Podle dostupných typů měřidel se vytvářejí také senzory **Studená voda**,
+**Teplá voda**, **Topení RTN** a samostatné timestampy posledních odečtů.
+Voda se zobrazuje v m³, RTN v dílcích. Výpadek endpointu vody a RTN znepřístupní
+jeho hodnotové senzory, ale neblokuje elektřinu ani dostupné zdrojové timestampy.
+Nově dostupné kanály se přidají při další aktualizaci. Integrace podporuje seznam
+s více typy měřidel a zachovává původní identifikátory elektrických entit.
+
+Kumulativnost vody a RTN ani pravidla resetů nejsou potvrzena. Nové senzory proto
+nemají state_class a neposkytují dlouhodobé statistiky pro Energy/Water dashboard.
+RTN value2 se neinterpretuje. U více záznamů stejného typu se neodhaduje identita
+fyzických zařízení ani společný timestamp.
+
 SmartEV zveřejňuje denní výrobu FVE s jednodenním zpožděním. Senzor poslední denní výroby FVE proto zobrazuje hodnotu za poslední dokončený kalendářní den a ignoruje dnešní zástupný řádek. Atribut `production_date` určuje datum, ke kterému se zobrazená hodnota vztahuje.
 
 ---
@@ -409,6 +450,14 @@ Běžné cloudové dotazování probíhá jednou za hodinu. Náročnější pře
 dokončených dnů a historie používají výše popsané pomalejší intervaly, aby se
 minimalizovala zátěž serverů SmartEV.
 
+Běžný úspěšný refresh provede **5 HTTP requestů** pro elektřinu/FVE nebo **6**,
+pokud je dostupná voda či RTN. SV/TUV/RTN sdílejí jediný dodatečný request.
+Chybějící kanály nevytvářejí entity ani dodatečný request. Přihlášená relace se
+opakovaně používá bez hodinového loginu. Denní CSV přidává jeden request;
+týdenní historie načte leden až aktuální měsíc a využije stejné aktuální CSV.
+Počty nezahrnují HTTP přesměrování, ruční aktualizace a opakování po chybě.
+Podrobnosti jsou v [release auditu](docs/RELEASE_0.7.3.md).
+
 ---
 
 ## Diagnostické údaje kalibrace
@@ -428,7 +477,6 @@ Entity odhadované výroby FVE zpřístupňují následující diagnostické atr
 
 ## Plánované funkce
 
-- Podpora vodoměrů
 - Podpora dalších zařízení SmartEV
 - Zařazení do oficiálního repozitáře HACS
 

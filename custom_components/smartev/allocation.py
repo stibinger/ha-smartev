@@ -5,10 +5,10 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from datetime import datetime
 import logging
 import math
+from dataclasses import dataclass
+from datetime import datetime
 from statistics import fmean, stdev
 from typing import Any
 

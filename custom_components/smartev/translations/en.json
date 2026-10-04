@@ -27,7 +27,7 @@
     "error": {
       "cannot_connect": "Unable to connect to SmartEV. Try again later.",
       "invalid_auth": "Invalid email address or password.",
-      "unsupported_apartment": "The selected apartment has no supported electricity meter.",
+      "unsupported_apartment": "The selected apartment has no supported meter data.",
       "unknown": "Unexpected error while connecting to SmartEV."
     },
     "abort": {
@@ -74,6 +74,24 @@
       },
       "last_reading": {
         "name": "Last reading"
+      },
+      "cold_water": {
+        "name": "Cold water"
+      },
+      "hot_water": {
+        "name": "Hot water"
+      },
+      "heating_rtn": {
+        "name": "Heating RTN"
+      },
+      "cold_water_last_reading": {
+        "name": "Cold water last reading"
+      },
+      "hot_water_last_reading": {
+        "name": "Hot water last reading"
+      },
+      "heating_rtn_last_reading": {
+        "name": "Heating RTN last reading"
       }
     }
   }

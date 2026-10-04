@@ -2,9 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
-## Unreleased
+## [0.7.3] - 2026-10-04
 
-## [0.7.3] - 2026-08-06
+### Added
+
+- Online cold-water and hot-water readings in m³ and heating RTN readings in allocator units.
+- Separate source timestamps and English/Czech names for available apartment channels.
+- Offline regression tests using anonymized captures, including optional endpoint failures and existing electrical entity IDs.
+
+### Fixed
+
+- Preserve electricity/PV support and existing electrical entity IDs while adapting to the updated SmartEV web application's API responses (not an official new public API).
+- Accept mixed meter collections and select electricity by type and identity instead of array order.
+- Pass the full dashboard context to the water/heating endpoint and isolate its failures from electricity updates.
+- Ignore unknown meter types and discover newly available supported channels during later refreshes.
+
+### Limitations
+
+- Water/RTN cumulative behavior and reset semantics remain unconfirmed. These sensors have no state class and do not publish TOTAL_INCREASING or Energy/Water dashboard statistics.
+- RTN value2, individual physical report channels, and the malformed annual water report are not used.
 
 ### Changed
 
