@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.7.6] - 2026-10-04
+
+### Changed
+
+- Replaced the SmartEV electrical lightning icon with the general SmartEV brand pictogram.
+- Added separate icon variants for Home Assistant's light and dark modes.
+
 ## [0.7.5] - 2026-10-04
 
 ### Fixed

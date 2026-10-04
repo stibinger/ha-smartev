@@ -27,7 +27,7 @@ SmartEV Home Assistant Integration connects Home Assistant to the SmartEV cloud 
 
 The integration supports electricity meters and online apartment channels for cold water, hot water and heating cost allocators (RTN).
 
-Release **0.7.5** supports the updated responses used by the SmartEV web
+Release **0.7.6** supports the updated responses used by the SmartEV web
 application. It uses the application's existing endpoints; these are not the
 promised new public API.
 
@@ -279,7 +279,7 @@ Integrace SmartEV pro Home Assistant propojuje Home Assistant s cloudovou platfo
 
 Integrace podporuje elektroměry a online bytové odečty studené vody, teplé vody a rozdělovačů topných nákladů (RTN).
 
-Verze **0.7.5** podporuje aktualizované odpovědi používané webovou aplikací
+Verze **0.7.6** podporuje aktualizované odpovědi používané webovou aplikací
 SmartEV. Využívá její stávající endpointy; nejde o slíbené nové veřejné API.
 
 ---
