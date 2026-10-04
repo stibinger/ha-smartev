@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.7.5] - 2026-10-04
+
+### Fixed
+
+- Fix the SmartEV logo in the README rendered by HACS by using an absolute raw GitHub image URL.
+- No changes to the integration's functional behavior.
+
 ## [0.7.4] - 2026-10-04
 
 ### Release
